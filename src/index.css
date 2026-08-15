@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-slate-50 text-navy-900 font-sans antialiased;
+  }
+  * {
+    @apply border-slate-200;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-navy-800 text-white px-5 py-2.5 hover:bg-navy-700 focus-visible:ring-navy-600 shadow-sm;
+  }
+  .btn-accent {
+    @apply btn bg-saffron-500 text-white px-5 py-2.5 hover:bg-saffron-600 focus-visible:ring-saffron-400 shadow-sm;
+  }
+  .btn-outline {
+    @apply btn border border-slate-300 bg-white text-navy-800 px-5 py-2.5 hover:bg-slate-50 focus-visible:ring-navy-500;
+  }
+  .btn-ghost {
+    @apply btn text-navy-700 px-3 py-2 hover:bg-slate-100 focus-visible:ring-navy-500;
+  }
+  .card {
+    @apply rounded-xl bg-white border border-slate-200 shadow-card;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-navy-900 placeholder:text-slate-400 focus:border-gov-500 focus:outline-none focus:ring-2 focus:ring-gov-100 transition-colors;
+  }
+  .label {
+    @apply block text-sm font-semibold text-navy-800 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .section-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+}
+
+@layer utilities {
+  .skeleton {
+    @apply bg-slate-200 rounded animate-pulse;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Recharts tooltip polish */
+.recharts-default-tooltip {
+  border-radius: 0.5rem !important;
+  border: 1px solid rgb(226 232 240) !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 26, 54, 0.1) !important;
+}
+.recharts-tooltip-label {
+  font-weight: 600 !important;
+  color: #0f1a36 !important;
+}

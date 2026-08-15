@@ -4,24 +4,19 @@ import {
   ArrowLeft,
   Camera,
   CheckCircle2,
-  Cpu,
   FilePlus,
-  Image as ImageIcon,
   Loader2,
   MapPin,
   Send,
-  Sparkles,
-  User,
-  Building,
   AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { aiService } from '@/services/aiService';
-import { complaintService } from '@/services/complaintService';
-import { departments, officers, wards } from '@/data/mockData';
+import { realComplaintService } from '@/services/realComplaintService';
+import { wards } from '@/data/mockData';
 import { SeverityBadge } from '@/components/ui';
-import type { AIAnalysis, Complaint } from '@/types';
+import type { AIAnalysis } from '@/types';
 
 type Phase = 'form' | 'analyzing' | 'result';
 
@@ -50,35 +45,21 @@ export function ReportComplaintPage() {
 
   async function handleConfirm() {
     if (!analysis || !user || user.role !== 'citizen') return;
-    const id = complaintService.nextId();
-    const complaint: Complaint = {
-      id,
+    
+    const { complaint, error } = await realComplaintService.createComplaint(user.id, {
       title: title.trim(),
       description: description.trim(),
       location: `${location.trim()}, ${ward}`,
       ward,
       imageUrl,
-      category: analysis.category,
-      severity: analysis.severity,
-      departmentId: analysis.departmentId,
-      officerId: analysis.officerId,
-      status: 'Assigned',
-      createdAt: new Date().toISOString(),
-      citizenId: user.id,
-      citizenName: user.name,
-      ai: analysis,
-      timeline: [
-        {
-          id: `t-${Date.now()}`,
-          status: 'Assigned',
-          note: `Auto-assigned to ${departments.find((d) => d.id === analysis.departmentId)?.name} dept by AI engine.`,
-          at: new Date().toISOString(),
-          by: 'CivicPulse AI',
-        },
-      ],
-    };
-    await complaintService.create(complaint);
-    setCreatedId(id);
+    });
+
+    if (error || !complaint) {
+      alert(error || 'Failed to create complaint');
+      return;
+    }
+
+    setCreatedId(complaint.complaint_number);
   }
 
   function handleReset() {
@@ -99,8 +80,6 @@ export function ReportComplaintPage() {
     reader.readAsDataURL(file);
   }
 
-  const dept = analysis ? departments.find((d) => d.id === analysis.departmentId) : null;
-  const officer = analysis ? officers.find((o) => o.id === analysis.officerId) : null;
 
   return (
     <DashboardLayout>
@@ -188,200 +167,78 @@ export function ReportComplaintPage() {
             </div>
 
             <button type="submit" disabled={!canSubmit} className="btn-primary w-full py-3 text-base">
-              <Sparkles className="h-5 w-5" /> Analyze with AI
+              Submit Complaint
             </button>
-          </div>
-
-          {/* Tips sidebar */}
-          <div className="space-y-4">
-            <div className="card p-5 bg-gov-50/50 border-gov-100">
-              <div className="flex items-center gap-2 mb-3">
-                <Cpu className="h-5 w-5 text-gov-600" />
-                <h3 className="font-bold text-navy-900 text-sm">How AI Detection Works</h3>
-              </div>
-              <p className="text-sm text-slate-600 leading-relaxed mb-3">
-                Our AI engine scans your complaint text for keywords and context to determine:
-              </p>
-              <ul className="space-y-2 text-sm text-slate-600">
-                {[
-                  { kw: '"Pothole" / "Road"', cat: 'Road Issue' },
-                  { kw: '"Water" / "Leakage"', cat: 'Water Leakage' },
-                  { kw: '"Garbage" / "Waste"', cat: 'Sanitation' },
-                  { kw: '"Streetlight" / "Pole"', cat: 'Electrical' },
-                  { kw: '"Drain" / "Sewer"', cat: 'Drainage' },
-                ].map((r) => (
-                  <li key={r.cat} className="flex items-center justify-between">
-                    <span className="font-mono text-xs">{r.kw}</span>
-                    <span className="badge bg-gov-100 text-gov-700">{r.cat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="card p-5">
-              <h3 className="font-bold text-navy-900 text-sm mb-2">Severity Detection</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Critical</span>
-                  <SeverityBadge severity="Critical" />
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">High</span>
-                  <SeverityBadge severity="High" />
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Medium</span>
-                  <SeverityBadge severity="Medium" />
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Low</span>
-                  <SeverityBadge severity="Low" />
-                </div>
-              </div>
-              <p className="text-xs text-slate-400 mt-3">
-                Severity is determined by keywords like "school", "hospital", "danger", "urgent".
-              </p>
-            </div>
           </div>
         </form>
       )}
 
       {phase === 'analyzing' && (
         <div className="card p-12 flex flex-col items-center justify-center animate-fade-in">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-gov-400 animate-pulse-ring" />
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gov-600 text-white">
-              <Cpu className="h-10 w-10" />
-            </div>
-          </div>
-          <h3 className="mt-6 text-xl font-bold text-navy-900">AI is analyzing your complaint...</h3>
-          <p className="mt-2 text-slate-500 text-sm">Detecting category, severity, and assigning department</p>
-          <div className="mt-6 space-y-2 w-full max-w-xs">
-            {['Scanning text for keywords...', 'Detecting complaint category...', 'Assessing severity level...', 'Matching department & officer...'].map((s, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-slate-500" style={{ animationDelay: `${i * 300}ms` }}>
-                <Loader2 className="h-4 w-4 animate-spin text-gov-500" />
-                {s}
-              </div>
-            ))}
-          </div>
+          <Loader2 className="h-12 w-12 animate-spin text-gov-600 mb-4" />
+          <h3 className="text-xl font-bold text-navy-900">Processing your complaint...</h3>
+          <p className="mt-2 text-slate-500 text-sm">Analyzing and routing to appropriate department</p>
         </div>
       )}
 
       {phase === 'result' && analysis && (
-        <div className="grid lg:grid-cols-3 gap-6 animate-fade-in">
-          <div className="lg:col-span-2 space-y-5">
-            {/* Success or confirm */}
-            {createdId ? (
-              <div className="card p-8 flex flex-col items-center text-center bg-emerald-50/50 border-emerald-200">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
-                  <CheckCircle2 className="h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-extrabold text-navy-900">Complaint Filed Successfully!</h3>
-                <p className="mt-2 text-slate-600">
-                  Your complaint ID is <span className="font-mono font-bold text-gov-700">{createdId}</span>
-                </p>
-                <div className="mt-6 flex gap-3">
-                  <button onClick={() => navigate('/citizen')} className="btn-primary">
-                    View My Complaints
-                  </button>
-                  <button onClick={handleReset} className="btn-outline">
-                    <FilePlus className="h-4 w-4" /> Report Another
-                  </button>
-                </div>
+        <div className="max-w-2xl mx-auto animate-fade-in">
+          {createdId ? (
+            <div className="card p-8 flex flex-col items-center text-center bg-emerald-50/50 border-emerald-200">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
+                <CheckCircle2 className="h-8 w-8" />
               </div>
-            ) : (
-              <>
-                {/* Complaint summary */}
-                <div className="card p-5">
-                  <h3 className="font-bold text-navy-900 mb-3">Complaint Summary</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs font-semibold uppercase text-slate-400">Title</div>
-                      <div className="text-sm font-medium text-navy-800">{title}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold uppercase text-slate-400">Description</div>
-                      <div className="text-sm text-navy-700 bg-slate-50 rounded-lg p-3 border border-slate-100">{description}</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-xs font-semibold uppercase text-slate-400">Location</div>
-                        <div className="text-sm font-medium text-navy-800">{location}, {ward}</div>
-                      </div>
-                      {imageUrl && (
-                        <div>
-                          <div className="text-xs font-semibold uppercase text-slate-400">Image</div>
-                          <img src={imageUrl} alt="Complaint" className="h-16 w-full object-cover rounded-lg border border-slate-200" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <button onClick={handleConfirm} className="btn-accent w-full py-3 text-base">
-                  <Send className="h-5 w-5" /> Confirm & Submit Complaint
+              <h3 className="text-xl font-extrabold text-navy-900">Complaint Filed Successfully!</h3>
+              <p className="mt-2 text-slate-600">
+                Your complaint ID is <span className="font-mono font-bold text-gov-700">{createdId}</span>
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button onClick={() => navigate('/citizen')} className="btn-primary">
+                  View My Complaints
                 </button>
-                <button onClick={() => setPhase('form')} className="btn-ghost w-full">
-                  <ArrowLeft className="h-4 w-4" /> Edit Details
+                <button onClick={handleReset} className="btn-outline">
+                  <FilePlus className="h-4 w-4" /> Report Another
                 </button>
-              </>
-            )}
-          </div>
-
-          {/* AI Analysis Panel */}
-          <div className="space-y-4">
-            <div className="card p-5 bg-gradient-to-br from-gov-50 to-white border-gov-200">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gov-600 text-white">
-                  <Cpu className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-navy-900">AI Analysis Result</div>
-                  <div className="text-xs text-gov-600 font-semibold">{Math.round(analysis.confidence * 100)}% confidence</div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <AIResultRow icon={Sparkles} label="Category Detected" value={analysis.category} />
-                <div>
-                  <div className="text-xs font-semibold uppercase text-slate-400 mb-1">Severity Detected</div>
-                  <SeverityBadge severity={analysis.severity} />
-                </div>
-                {dept && (
-                  <AIResultRow icon={Building} label="Assigned Department" value={dept.name} />
-                )}
-                {officer && (
-                  <AIResultRow icon={User} label="Assigned Officer" value={officer.name} />
-                )}
-              </div>
-              <div className="mt-4 pt-4 border-t border-gov-100">
-                <div className="text-xs font-semibold uppercase text-slate-400 mb-1.5">AI Generated Summary</div>
-                <p className="text-sm text-navy-700 leading-relaxed bg-white rounded-lg p-3 border border-slate-100">
-                  {analysis.summary}
-                </p>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="card p-5">
+                <h3 className="font-bold text-navy-900 mb-3">Complaint Summary</h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase text-slate-400">Title</div>
+                    <div className="text-sm font-medium text-navy-800">{title}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold uppercase text-slate-400">Description</div>
+                    <div className="text-sm text-navy-700 bg-slate-50 rounded-lg p-3 border border-slate-100">{description}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase text-slate-400">Location</div>
+                      <div className="text-sm font-medium text-navy-800">{location}, {ward}</div>
+                    </div>
+                    {imageUrl && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase text-slate-400">Image</div>
+                        <img src={imageUrl} alt="Complaint" className="h-16 w-full object-cover rounded-lg border border-slate-200" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={handleConfirm} className="btn-accent w-full py-3 text-base">
+                <Send className="h-5 w-5" /> Confirm & Submit Complaint
+              </button>
+              <button onClick={() => setPhase('form')} className="btn-ghost w-full">
+                <ArrowLeft className="h-4 w-4" /> Edit Details
+              </button>
+            </>
+          )}
         </div>
       )}
     </DashboardLayout>
-  );
-}
-
-function AIResultRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof User;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="h-4 w-4 text-gov-500 mt-0.5 shrink-0" />
-      <div>
-        <div className="text-xs font-semibold uppercase text-slate-400">{label}</div>
-        <div className="text-sm font-semibold text-navy-800">{value}</div>
-      </div>
-    </div>
   );
 }

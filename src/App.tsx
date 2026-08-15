@@ -3,6 +3,9 @@ import { AuthProvider } from '@/context/AuthContext';
 import { RequireRole } from '@/components/RequireRole';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { RegisterPage } from '@/pages/RegisterPage';
+import { ProfilePage } from '@/pages/ProfilePage';
+import { UserManagementPage } from '@/pages/UserManagementPage';
 import { CitizenDashboard } from '@/pages/CitizenDashboard';
 import { ReportComplaintPage } from '@/pages/ReportComplaintPage';
 import { OfficerDashboard } from '@/pages/OfficerDashboard';
@@ -16,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route
             path="/citizen"
             element={
@@ -29,6 +33,14 @@ function App() {
             element={
               <RequireRole role="citizen">
                 <ReportComplaintPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/citizen/profile"
+            element={
+              <RequireRole role="citizen">
+                <ProfilePage />
               </RequireRole>
             }
           />
@@ -53,6 +65,14 @@ function App() {
             element={
               <RequireRole role="admin">
                 <AdminAnalytics />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole role="admin">
+                <UserManagementPage />
               </RequireRole>
             }
           />

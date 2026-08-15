@@ -21,10 +21,10 @@ import {
 import { Logo } from '@/components/Logo';
 
 const stats = [
-  { label: 'Complaints Resolved', value: '12,847', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { label: 'Avg. Resolution Time', value: '3.2 days', icon: Clock, color: 'text-gov-600', bg: 'bg-gov-50' },
-  { label: 'Citizens Served', value: '48,200+', icon: Users, color: 'text-saffron-600', bg: 'bg-saffron-50' },
-  { label: 'Resolution Rate', value: '94.6%', icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50' },
+  { label: 'AI-Powered Routing', value: 'Automatic', icon: Cpu, color: 'text-gov-600', bg: 'bg-gov-50' },
+  { label: 'Real-Time Tracking', value: 'Live Updates', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { label: 'Mobile Friendly', value: 'Any Device', icon: Smartphone, color: 'text-saffron-600', bg: 'bg-saffron-50' },
+  { label: 'Secure & Private', value: 'Protected', icon: ShieldCheck, color: 'text-violet-600', bg: 'bg-violet-50' },
 ];
 
 const workflow = [

@@ -1,15 +1,15 @@
 export type Role = 'citizen' | 'officer' | 'admin';
 
-export type ComplaintStatus = 'Assigned' | 'In Progress' | 'Resolved';
-export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
+export type ComplaintStatus = 'submitted' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+export type Severity = 'low' | 'medium' | 'high' | 'critical';
 
 export type ComplaintCategory =
-  | 'Road Issue'
-  | 'Water Leakage'
-  | 'Sanitation'
-  | 'Electrical'
-  | 'Drainage'
-  | 'Public Sanitation';
+  | 'road_issue'
+  | 'water_leakage'
+  | 'sanitation'
+  | 'electrical'
+  | 'drainage'
+  | 'public_sanitation';
 
 export interface Department {
   id: string;
@@ -45,6 +45,7 @@ export interface StatusUpdate {
 
 export interface Complaint {
   id: string;
+  complaint_number: string;
   title: string;
   description: string;
   location: string;
@@ -52,14 +53,18 @@ export interface Complaint {
   imageUrl?: string;
   category: ComplaintCategory;
   severity: Severity;
-  departmentId: string;
-  officerId: string;
+  departmentId?: string;
+  officerId?: string;
   status: ComplaintStatus;
   createdAt: string;
-  citizenId: string;
-  citizenName: string;
-  ai: AIAnalysis;
-  timeline: StatusUpdate[];
+  updatedAt: string;
+  resolvedAt?: string;
+  citizenId?: string;
+  citizenName?: string;
+  departmentName?: string;
+  officerName?: string;
+  ai?: AIAnalysis;
+  timeline?: StatusUpdate[];
 }
 
 export interface CitizenUser {
@@ -68,6 +73,7 @@ export interface CitizenUser {
   email: string;
   ward: string;
   phone: string;
+  address?: string;
   joinedAt: string;
 }
 

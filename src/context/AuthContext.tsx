@@ -1,30 +1,52 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { authService } from '@/services/authService';
+import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
+import { realAuthService } from '@/services/realAuthService';
 import type { AuthUser, Role } from '@/types';
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-  login: (role: Role, id: string, password: string) => Promise<AuthUser>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  logout: () => Promise<void>;
   clearError: () => void;
+  register: (data: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string;
+    ward?: string;
+    address?: string;
+  }) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => authService.current());
+  const [user, setUser] = useState<AuthUser | null>(() => realAuthService.current());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = useCallback(async (role: Role, id: string, password: string) => {
+  // Check for existing session on mount
+  useEffect(() => {
+    const currentUser = realAuthService.current();
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     try {
-      const u = await authService.login(role, id, password);
-      setUser(u);
-      return u;
+      const { user: authUser, error: loginError } = await realAuthService.login({ email, password });
+      
+      if (loginError) {
+        setError(loginError);
+        throw new Error(loginError);
+      }
+      
+      setUser(authUser);
+      return authUser;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
       throw e;
@@ -33,16 +55,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    authService.logout();
-    setUser(null);
+  const logout = useCallback(async () => {
+    setLoading(true);
+    try {
+      await realAuthService.logout();
+      setUser(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Logout failed');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const register = useCallback(async (data: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string;
+    ward?: string;
+    address?: string;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { user: authUser, error: registerError } = await realAuthService.registerCitizen(data);
+      
+      if (registerError) {
+        setError(registerError);
+        throw new Error(registerError);
+      }
+      
+      setUser(authUser);
+      return authUser;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Registration failed');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
 
   const value = useMemo(
-    () => ({ user, loading, error, login, logout, clearError }),
-    [user, loading, error, login, logout, clearError],
+    () => ({ user, loading, error, login, logout, register, clearError }),
+    [user, loading, error, login, logout, register, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

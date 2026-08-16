@@ -62,10 +62,12 @@ export const realComplaintService = {
       const { data: citizenProfile, error: profileError } = await supabase
         .from('citizen_profiles')
         .select('user_id')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
-      if (profileError || !citizenProfile) {
+      console.log('Profile check:', { citizenProfile, profileError, userId });
+
+      if (profileError || !citizenProfile || citizenProfile.length === 0) {
+        console.error('Profile not found:', { profileError, citizenProfile });
         return { complaint: null, error: 'Citizen profile not found. Please complete your registration.' };
       }
 

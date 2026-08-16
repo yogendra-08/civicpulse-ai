@@ -43,15 +43,19 @@ export const realAuthService = {
       });
 
       if (authError) {
+        console.error('Auth error:', authError);
         return { user: null as unknown as AuthUser, error: authError.message };
       }
 
       if (!authData.user) {
+        console.error('No user data returned');
         return { user: null as unknown as AuthUser, error: 'Registration failed' };
       }
 
+      console.log('User created:', authData.user.id);
+
       // Create citizen profile using RPC function (bypasses RLS)
-      const { error: profileError } = await supabase.rpc('create_citizen_profile', {
+      const { data: profileResult, error: profileError } = await supabase.rpc('create_citizen_profile', {
         p_user_id: authData.user.id,
         p_full_name: data.fullName,
         p_phone: data.phone,
@@ -59,7 +63,10 @@ export const realAuthService = {
         p_address: data.address,
       });
 
+      console.log('Profile creation result:', { profileResult, profileError });
+
       if (profileError) {
+        console.error('Profile creation failed:', profileError);
         // Rollback auth user if profile creation fails
         await supabase.auth.admin.deleteUser(authData.user.id);
         return { user: null as unknown as AuthUser, error: profileError.message };
@@ -78,6 +85,7 @@ export const realAuthService = {
 
       return { user: authUser, error: null };
     } catch (error) {
+      console.error('Registration error:', error);
       return {
         user: null as unknown as AuthUser,
         error: error instanceof Error ? error.message : 'Registration failed',

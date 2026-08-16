@@ -50,16 +50,14 @@ export const realAuthService = {
         return { user: null as unknown as AuthUser, error: 'Registration failed' };
       }
 
-      // Create citizen profile
-      const { error: profileError } = await supabase
-        .from('citizen_profiles')
-        .insert({
-          user_id: authData.user.id,
-          full_name: data.fullName,
-          phone: data.phone,
-          ward: data.ward,
-          address: data.address,
-        });
+      // Create citizen profile using RPC function (bypasses RLS)
+      const { error: profileError } = await supabase.rpc('create_citizen_profile', {
+        p_user_id: authData.user.id,
+        p_full_name: data.fullName,
+        p_phone: data.phone,
+        p_ward: data.ward,
+        p_address: data.address,
+      });
 
       if (profileError) {
         // Rollback auth user if profile creation fails

@@ -58,6 +58,17 @@ export const realComplaintService = {
   // Create new complaint
   async createComplaint(userId: string, data: CreateComplaintData): Promise<{ complaint: Complaint | null; error: string | null }> {
     try {
+      // Verify citizen profile exists
+      const { data: citizenProfile, error: profileError } = await supabase
+        .from('citizen_profiles')
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileError || !citizenProfile) {
+        return { complaint: null, error: 'Citizen profile not found. Please complete your registration.' };
+      }
+
       // Check if user can file complaint (rate limiting)
       const { data: canFile, error: rateLimitError } = await supabase
         .rpc('can_file_complaint', { p_user_id: userId });
@@ -80,7 +91,7 @@ export const realComplaintService = {
       const { data: department } = await supabase
         .from('departments')
         .select('id')
-        .eq('name', aiAnalysis.departmentId ? 
+        .eq('name', aiAnalysis.departmentId ?
           ['Roads & Infrastructure', 'Water Works', 'Sanitation & Solid Waste', 'Electrical & Street Lighting', 'Drainage & Sewerage']
             .find(dept => dept.toLowerCase().includes(aiAnalysis.departmentId?.toLowerCase() || '')) || 'Sanitation & Solid Waste'
           : 'Sanitation & Solid Waste')

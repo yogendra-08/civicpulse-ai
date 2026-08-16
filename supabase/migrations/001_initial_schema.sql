@@ -25,6 +25,16 @@ CREATE TABLE departments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Wards table
+CREATE TABLE wards (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    population INTEGER,
+    area_sq_km DECIMAL(10,2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Officers table (manually created by admin)
 CREATE TABLE officers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -166,9 +176,9 @@ CREATE TRIGGER update_citizen_profiles_updated_at BEFORE UPDATE ON citizen_profi
 CREATE TRIGGER update_complaints_updated_at BEFORE UPDATE ON complaints
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Function to generate complaint numbers
+-- Function to generate complaint numbers (trigger function)
 CREATE OR REPLACE FUNCTION generate_complaint_number()
-RETURNS VARCHAR(50) AS $$
+RETURNS TRIGGER AS $$
 DECLARE
     year_part VARCHAR(4);
     sequence_num INTEGER;
@@ -182,14 +192,38 @@ BEGIN
     WHERE complaint_number LIKE 'CP-' || year_part || '-%';
     
     complaint_num := 'CP-' || year_part || '-' || LPAD(sequence_num::TEXT, 4, '0');
-    RETURN complaint_num;
+    NEW.complaint_number := complaint_num;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Function to auto-create citizen profile on user registration
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.raw_user_meta_data->>'role' = 'citizen' THEN
+        INSERT INTO citizen_profiles (user_id, full_name)
+        VALUES (
+            NEW.id,
+            COALESCE(NEW.raw_user_meta_data->>'full_name', 'Citizen')
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to auto-create citizen profile
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    WHEN (NEW.raw_user_meta_data->>'role' = 'citizen')
+    EXECUTE FUNCTION handle_new_user();
 
 -- Trigger to auto-generate complaint number
 CREATE TRIGGER generate_complaint_number_trigger
     BEFORE INSERT ON complaints
     FOR EACH ROW
+    WHEN (NEW.complaint_number IS NULL)
     EXECUTE FUNCTION generate_complaint_number();
 
 -- Insert default departments

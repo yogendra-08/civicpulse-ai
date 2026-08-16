@@ -14,11 +14,11 @@ ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 -- Helper function to get user role from custom claims
 CREATE OR REPLACE FUNCTION get_user_role()
 RETURNS user_role AS $$
+DECLARE
+    v_role TEXT;
 BEGIN
-    RETURN COALESCE(
-        (SELECT raw_user_meta_data->>'role' FROM auth.users WHERE id = auth.uid()),
-        'citizen'::user_role
-    );
+    SELECT raw_user_meta_data->>'role' INTO v_role FROM auth.users WHERE id = auth.uid();
+    RETURN COALESCE(v_role::user_role, 'citizen'::user_role);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -91,11 +91,7 @@ CREATE POLICY "Only admins can insert officers"
 CREATE POLICY "Officers can update their own profile"
     ON officers FOR UPDATE
     USING (user_id = auth.uid())
-    WITH CHECK (
-        user_id = auth.uid() AND 
-        (phone IS NOT DISTINCT FROM OLD.phone) AND
-        (is_active IS NOT DISTINCT FROM OLD.is_active)
-    );
+    WITH CHECK (user_id = auth.uid());
 
 -- Admins can update all officers
 CREATE POLICY "Admins can update all officers"

@@ -77,8 +77,11 @@ This guide provides detailed step-by-step instructions for deploying CivicPulse 
    - `supabase/migrations/001_initial_schema.sql`
    - `supabase/migrations/002_rls_policies.sql`
    - `supabase/migrations/003_functions.sql`
-3. Execute each migration file in order (001, then 002, then 003)
+   - `supabase/migrations/004_citizen_profile_trigger.sql`
+3. Execute each migration file in order (001, then 002, then 003, then 004)
 4. Verify tables are created in **Table Editor**
+
+**Note**: If you get "type already exists" errors when re-running migration 001, skip it and only run migrations 002, 003, and 004.
 
 ---
 
@@ -169,10 +172,22 @@ VITE_MUNICIPALITY_NAME=Springfield
 
 ## Initial Data Seeding
 
-### Step 10: Seed Wards Data
+### Step 10: Create Wards Table
 
-1. Go to **SQL Editor** in Supabase
-2. Execute:
+**Note**: If you ran the migrations before this update, the wards table may not exist. Run this first:
+
+```sql
+CREATE TABLE IF NOT EXISTS wards (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    population INTEGER,
+    area_sq_km DECIMAL(10,2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+Then seed the wards data:
 
 ```sql
 INSERT INTO wards (name, description, population) VALUES

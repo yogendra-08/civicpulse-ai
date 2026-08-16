@@ -28,18 +28,8 @@ import {
 } from 'recharts';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { LoadingOverlay } from '@/components/ui';
-import { complaintService } from '@/services/complaintService';
-import { departments, categoryColor } from '@/data/mockData';
+import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint, ComplaintCategory } from '@/types';
-
-const monthlyTrend = [
-  { month: 'Mar', complaints: 142, resolved: 98 },
-  { month: 'Apr', complaints: 168, resolved: 130 },
-  { month: 'May', complaints: 195, resolved: 162 },
-  { month: 'Jun', complaints: 220, resolved: 185 },
-  { month: 'Jul', complaints: 258, resolved: 224 },
-  { month: 'Aug', complaints: 287, resolved: 241 },
-];
 
 const resolutionTrend = [
   { week: 'W1', assigned: 45, inProgress: 38, resolved: 32 },
@@ -52,16 +42,77 @@ const resolutionTrend = [
 
 export function AdminAnalytics() {
   const [complaints, setComplaints] = useState<Complaint[] | null>(null);
+  const [monthlyTrend, setMonthlyTrend] = useState<Array<{ month: string; complaints: number; resolved: number }>>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    resolved: 0,
+    inProgress: 0,
+    assigned: 0,
+    submitted: 0,
+    avgResolutionTime: 0,
+    resolutionRate: 0,
+  });
+  const [deptData, setDeptData] = useState<Array<{ name: string; total: number; resolved: number }>>([]);
 
   useEffect(() => {
-    complaintService.list().then(setComplaints);
+    async function loadData() {
+      const [{ complaints: complaintRows, error: complaintError }, statsResult, deptResult, trendResult] = await Promise.all([
+        realComplaintService.getAllComplaints(),
+        realComplaintService.getStatistics(),
+        realComplaintService.getDepartmentStatistics(),
+        realComplaintService.getMonthlyTrend(6),
+      ]);
+
+      if (complaintError) {
+        console.error('Failed to load admin complaints:', complaintError);
+      }
+
+      setComplaints(complaintRows || []);
+      setStats({
+        total: statsResult.total,
+        resolved: statsResult.resolved,
+        inProgress: statsResult.inProgress,
+        assigned: statsResult.assigned,
+        submitted: statsResult.submitted,
+        avgResolutionTime: statsResult.avgResolutionTime,
+        resolutionRate: statsResult.resolutionRate,
+      });
+
+      const mappedDeptData = (deptResult.departments || []).map((d) => ({
+        name: d.name.replace(/ &.*/, '').replace(/\s.*/, ''),
+        fullName: d.name,
+        total: d.total,
+        resolved: d.resolved,
+      }));
+      setDeptData(mappedDeptData);
+
+      const mappedTrend = (trendResult.trends || []).map((d) => ({
+        month: d.month,
+        complaints: d.complaints,
+        resolved: d.resolved,
+      }));
+      setMonthlyTrend(mappedTrend);
+    }
+
+    loadData();
   }, []);
 
   const categoryData = useMemo(() => {
     if (!complaints) return [];
     const map = new Map<ComplaintCategory, number>();
     complaints.forEach((c) => map.set(c.category, (map.get(c.category) ?? 0) + 1));
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value, color: categoryColor[name] }));
+    return Array.from(map.entries()).map(([name, value]) => ({
+      name,
+      value,
+      color: {
+        'Road Issue': '#f59e0b',
+        'Water Leakage': '#3b82f6',
+        Sanitation: '#10b981',
+        Electrical: '#8b5cf6',
+        Drainage: '#22c55e',
+        'Public Sanitation': '#14b8a6',
+      }[name],
+    }));
   }, [complaints]);
 
   const severityData = useMemo(() => {
@@ -73,19 +124,6 @@ export function AdminAnalytics() {
       count: complaints.filter((c) => c.severity === s).length,
       color: colors[s],
     }));
-  }, [complaints]);
-
-  const deptData = useMemo(() => {
-    if (!complaints) return [];
-    return departments.map((d) => {
-      const dc = complaints.filter((c) => c.departmentId === d.id);
-      return {
-        name: d.name.replace(/ &.*/, '').replace(/\s.*/, ''),
-        fullName: d.name,
-        total: dc.length,
-        resolved: dc.filter((c) => c.status === 'Resolved').length,
-      };
-    });
   }, [complaints]);
 
   const wardData = useMemo(() => {
@@ -115,10 +153,10 @@ export function AdminAnalytics() {
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard label="Total Complaints" value={complaints.length} trend="+12%" icon={BarChart3} color="bg-gov-50 text-gov-600" />
-        <KPICard label="Avg Resolution" value="3.2d" trend="-0.4d" icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
-        <KPICard label="Resolution Rate" value="94.6%" trend="+2.1%" icon={TrendingUp} color="bg-saffron-50 text-saffron-600" />
-        <KPICard label="Critical Cases" value={complaints.filter((c) => c.severity === 'Critical').length} trend="+1" icon={AlertTriangle} color="bg-red-50 text-red-600" />
+        <KPICard label="Total Complaints" value={stats.total} trend="Live" icon={BarChart3} color="bg-gov-50 text-gov-600" />
+        <KPICard label="Avg Resolution" value={`${Math.max(0, Math.round(stats.avgResolutionTime))}d`} trend="Live" icon={TrendingUp} color="bg-emerald-50 text-emerald-600" />
+        <KPICard label="Resolution Rate" value={`${Math.round(stats.resolutionRate)}%`} trend="Live" icon={TrendingUp} color="bg-saffron-50 text-saffron-600" />
+        <KPICard label="Critical Cases" value={complaints.filter((c) => c.severity === 'Critical').length} trend="Live" icon={AlertTriangle} color="bg-red-50 text-red-600" />
       </div>
 
       {/* Charts grid */}

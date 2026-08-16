@@ -39,11 +39,11 @@ const categoryBg: Record<ComplaintCategory, string> = {
   'Public Sanitation': 'bg-teal-50 text-teal-600',
 };
 
-function deptName(id?: string) {
-  return departments.find((d) => d.id === id)?.name ?? 'Unknown';
+function deptName(id?: string, fallback?: string) {
+  return fallback || departments.find((d) => d.id === id)?.name || 'Unknown';
 }
-function officerName(id?: string) {
-  return officers.find((o) => o.id === id)?.name ?? 'Unassigned';
+function officerName(id?: string, fallback?: string) {
+  return fallback || officers.find((o) => o.id === id)?.name || 'Unassigned';
 }
 
 function formatDate(iso: string) {
@@ -100,7 +100,7 @@ export function ComplaintCard({
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
             <StatusBadge status={complaint.status} />
-            <span className="text-xs text-slate-400 truncate">{complaint.departmentName ?? deptName(complaint.departmentId)}</span>
+            <span className="text-xs text-slate-400 truncate">{complaint.departmentName ?? deptName(complaint.departmentId, complaint.departmentName)}</span>
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-navy-400 group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -165,8 +165,8 @@ export function ComplaintDetailModal({
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
             <MetaItem icon={MapPin} label="Location" value={complaint.location} />
-            <MetaItem icon={Building} label="Department" value={deptName(complaint.departmentId)} />
-            <MetaItem icon={User} label="Assigned Officer" value={officerName(complaint.officerId)} />
+            <MetaItem icon={Building} label="Department" value={deptName(complaint.departmentId, complaint.departmentName)} />
+            <MetaItem icon={User} label="Assigned Officer" value={officerName(complaint.officerId, complaint.officerName)} />
             <MetaItem icon={Calendar} label="Filed On" value={formatDate(complaint.createdAt)} />
           </div>
 

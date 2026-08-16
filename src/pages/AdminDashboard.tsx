@@ -15,8 +15,7 @@ import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ComplaintCard, ComplaintDetailModal } from '@/components/ComplaintComponents';
 import { LoadingOverlay } from '@/components/ui';
-import { complaintService } from '@/services/complaintService';
-import { departments } from '@/data/mockData';
+import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint } from '@/types';
 
 export function AdminDashboard() {
@@ -26,7 +25,12 @@ export function AdminDashboard() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    complaintService.list().then(setComplaints);
+    realComplaintService.getAllComplaints().then(({ complaints, error }) => {
+      if (error) {
+        console.error('Failed to load admin complaints:', error);
+      }
+      setComplaints(complaints || []);
+    });
   }, []);
 
   const stats = useMemo(() => {
@@ -42,18 +46,31 @@ export function AdminDashboard() {
 
   const deptPerformance = useMemo(() => {
     if (!complaints) return [];
-    return departments.map((d) => {
-      const deptComplaints = complaints.filter((c) => c.departmentId === d.id);
-      const resolved = deptComplaints.filter((c) => c.status === 'Resolved').length;
-      const total = deptComplaints.length;
-      return {
-        ...d,
-        total,
-        resolved,
-        pending: total - resolved,
-        rate: total > 0 ? Math.round((resolved / total) * 100) : 0,
+
+    const map = new Map<string, { id: string; name: string; color: string; total: number; resolved: number }>();
+
+    complaints.forEach((c) => {
+      const name = c.departmentName || c.departmentId || 'Unassigned';
+      const entry = map.get(name) ?? {
+        id: c.departmentId || name,
+        name,
+        color: '#3b82f6',
+        total: 0,
+        resolved: 0,
       };
+
+      entry.total += 1;
+      if (c.status === 'Resolved') entry.resolved += 1;
+      map.set(name, entry);
     });
+
+    return Array.from(map.values())
+      .map((d) => ({
+        ...d,
+        pending: d.total - d.resolved,
+        rate: d.total > 0 ? Math.round((d.resolved / d.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [complaints]);
 
   const wardPerformance = useMemo(() => {

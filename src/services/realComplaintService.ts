@@ -180,7 +180,7 @@ export const realComplaintService = {
         .single();
 
       // Create complaint (retry on complaint_number unique constraint conflicts)
-      let complaint: unknown = null;
+      let complaint: any = null;
       let insertError: any = null;
       const maxAttempts = 4;
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -207,7 +207,7 @@ export const realComplaintService = {
           .select()
           .single();
 
-        complaint = res.data;
+        complaint = res.data as any;
         insertError = res.error;
 
         if (!insertError) break;
@@ -297,15 +297,20 @@ export const realComplaintService = {
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: true });
 
-      return { 
-        complaint: { 
-          ...complaint, 
-          timeline: timeline || [],
-          citizenName: complaint.citizen_profiles?.full_name,
-          departmentName: complaint.departments?.name,
-          officerName: complaint.officers?.badge_number,
-        } as Complaint, 
-        error: null 
+      const mappedComplaint = mapDbComplaint(complaint as DbComplaintRow);
+
+      return {
+        complaint: {
+          ...mappedComplaint,
+          timeline: (timeline || []).map((t) => ({
+            id: t.id,
+            status: fromDbStatus(t.status),
+            note: t.note || '',
+            at: t.created_at,
+            by: t.performed_by ? 'Officer' : 'System',
+          })),
+        },
+        error: null,
       };
     } catch (error) {
       return { 
@@ -484,27 +489,10 @@ export const realComplaintService = {
         return { complaints: [], error: error.message };
       }
 
-      type ComplaintRow = {
-        citizen_profiles?: { full_name?: string };
-        departments?: { name?: string };
-        officers?: { badge_number?: string };
-        [key: string]: unknown;
+      return {
+        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        error: null,
       };
-
-      const formattedComplaints = (complaints || []).map((c: ComplaintRow) => ({
-        ...c,
-        citizenName: c.citizen_profiles && typeof c.citizen_profiles === 'object' && 'full_name' in c.citizen_profiles
-          ? c.citizen_profiles.full_name
-          : undefined,
-        departmentName: c.departments && typeof c.departments === 'object' && 'name' in c.departments
-          ? c.departments.name
-          : undefined,
-        officerName: c.officers && typeof c.officers === 'object' && 'badge_number' in c.officers
-          ? c.officers.badge_number
-          : undefined,
-      })) as Complaint[];
-
-      return { complaints: formattedComplaints, error: null };
     } catch (error) {
       return { 
         complaints: [], 

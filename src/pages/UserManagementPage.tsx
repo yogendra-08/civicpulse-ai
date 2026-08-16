@@ -60,7 +60,7 @@ export function UserManagementPage() {
           created_at?: string;
         };
 
-        const userRows: UserRow[] = (data || []).map((u: QueryUserRow) => ({
+        const userRows: UserRow[] = ((data || []) as QueryUserRow[]).map((u) => ({
           id: u.user_id || u.id || '',
           email: u.email || u.auth_users?.email || '',
           role: 'citizen',
@@ -96,7 +96,7 @@ export function UserManagementPage() {
           created_at?: string;
         };
 
-        const userRows: UserRow[] = (data || []).map((u: QueryUserRow) => ({
+        const userRows: UserRow[] = ((data || []) as QueryUserRow[]).map((u) => ({
           id: u.user_id || u.id || '',
           email: u.email || u.auth_users?.email || '',
           role: 'officer',

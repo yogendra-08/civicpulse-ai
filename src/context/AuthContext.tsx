@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
 import { realAuthService } from '@/services/realAuthService';
-import type { AuthUser, Role } from '@/types';
+import type { AuthUser } from '@/types';
 
 interface AuthContextValue {
   user: AuthUser | null;

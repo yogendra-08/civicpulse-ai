@@ -71,7 +71,7 @@ export function RegisterPage() {
     setError(null);
 
     try {
-      const { user, error: registerError } = await realAuthService.registerCitizen({
+      const { error: registerError } = await realAuthService.registerCitizen({
         email: formData.email,
         password: formData.password,
         fullName: formData.fullName,
@@ -92,7 +92,7 @@ export function RegisterPage() {
       setTimeout(() => {
         navigate('/citizen');
       }, 2000);
-    } catch (err) {
+    } catch {
       setError('Registration failed. Please try again.');
       setLoading(false);
     }

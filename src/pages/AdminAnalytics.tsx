@@ -252,7 +252,6 @@ function KPICard({
   icon: typeof BarChart3;
   color: string;
 }) {
-  const isPositive = trend.startsWith('+') || trend.startsWith('-0');
   return (
     <div className="card p-5 animate-fade-in">
       <div className="flex items-center justify-between mb-3">

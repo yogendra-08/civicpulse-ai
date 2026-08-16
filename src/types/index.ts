@@ -1,15 +1,15 @@
 export type Role = 'citizen' | 'officer' | 'admin';
 
-export type ComplaintStatus = 'submitted' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
-export type Severity = 'low' | 'medium' | 'high' | 'critical';
+export type ComplaintStatus = 'Submitted' | 'Assigned' | 'In Progress' | 'Resolved' | 'Closed';
+export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 
 export type ComplaintCategory =
-  | 'road_issue'
-  | 'water_leakage'
-  | 'sanitation'
-  | 'electrical'
-  | 'drainage'
-  | 'public_sanitation';
+  | 'Road Issue'
+  | 'Water Leakage'
+  | 'Sanitation'
+  | 'Electrical'
+  | 'Drainage'
+  | 'Public Sanitation';
 
 export interface Department {
   id: string;
@@ -41,11 +41,11 @@ export interface StatusUpdate {
   note: string;
   at: string;
   by: string;
-}
+};
 
 export interface Complaint {
   id: string;
-  complaint_number: string;
+  complaint_number?: string;
   title: string;
   description: string;
   location: string;
@@ -57,7 +57,7 @@ export interface Complaint {
   officerId?: string;
   status: ComplaintStatus;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   resolvedAt?: string;
   citizenId?: string;
   citizenName?: string;

@@ -12,17 +12,19 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ComplaintCard, ComplaintDetailModal } from '@/components/ComplaintComponents';
-import { LoadingOverlay, EmptyState, SeverityBadge, StatusBadge } from '@/components/ui';
+import { LoadingOverlay, EmptyState, StatusBadge } from '@/components/ui';
 import { complaintService } from '@/services/complaintService';
 import { departments } from '@/data/mockData';
 import type { Complaint, ComplaintStatus } from '@/types';
 
 const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved'];
 
-const nextStatus: Record<ComplaintStatus, ComplaintStatus | null> = {
+const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
+  Submitted: 'Assigned',
   Assigned: 'In Progress',
   'In Progress': 'Resolved',
-  Resolved: null,
+  Resolved: 'Closed',
+  Closed: null,
 };
 
 export function OfficerDashboard() {
@@ -86,7 +88,7 @@ export function OfficerDashboard() {
   if (!complaints) return <DashboardLayout><LoadingOverlay label="Loading assigned complaints..." /></DashboardLayout>;
 
   const deptName = user?.role === 'officer' ? departments.find((d) => d.id === user.departmentId)?.name : '';
-  const next = selected ? nextStatus[selected.status] : null;
+  const next = selected ? nextStatus[selected.status] ?? null : null;
 
   return (
     <DashboardLayout>

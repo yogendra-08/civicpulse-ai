@@ -6,7 +6,6 @@ import {
   Clock,
   FilePlus,
   Search,
-  Filter,
   MapPin,
   Calendar,
   ChevronRight,
@@ -15,7 +14,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ComplaintCard, ComplaintDetailModal } from '@/components/ComplaintComponents';
-import { LoadingOverlay, EmptyState, SeverityBadge, StatusBadge } from '@/components/ui';
+import { LoadingOverlay, EmptyState } from '@/components/ui';
 import { complaintService } from '@/services/complaintService';
 import type { Complaint, ComplaintStatus } from '@/types';
 

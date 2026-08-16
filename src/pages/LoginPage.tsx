@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  ArrowRight,
   Eye,
   EyeOff,
   Lock,
@@ -38,7 +37,7 @@ export function LoginPage() {
           navigate('/admin');
           break;
       }
-    } catch (err) {
+    } catch {
       // Error is already handled by auth context
     }
   }

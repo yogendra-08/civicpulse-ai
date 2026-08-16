@@ -47,7 +47,7 @@ export const complaintService = {
         ...c,
         status,
         timeline: [
-          ...c.timeline,
+          ...(c.timeline ?? []),
           { id: `t-${Date.now()}`, status, note, by, at: new Date().toISOString() },
         ],
       };

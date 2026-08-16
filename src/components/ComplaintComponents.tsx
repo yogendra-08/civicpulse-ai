@@ -39,10 +39,10 @@ const categoryBg: Record<ComplaintCategory, string> = {
   'Public Sanitation': 'bg-teal-50 text-teal-600',
 };
 
-function deptName(id: string) {
+function deptName(id?: string) {
   return departments.find((d) => d.id === id)?.name ?? 'Unknown';
 }
-function officerName(id: string) {
+function officerName(id?: string) {
   return officers.find((o) => o.id === id)?.name ?? 'Unassigned';
 }
 
@@ -121,6 +121,8 @@ export function ComplaintDetailModal({
   const [imgError, setImgError] = useState(false);
   if (!complaint) return null;
   const Icon = iconMap[complaint.category];
+  const aiInfo = complaint.ai ?? null;
+  const timeline = complaint.timeline ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -177,34 +179,36 @@ export function ComplaintDetailModal({
           </div>
 
           {/* AI Analysis */}
-          <div className="rounded-xl border border-gov-200 bg-gov-50/50 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gov-600 text-white">
-                <Cpu className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-navy-900">AI Analysis</div>
-                <div className="text-[11px] text-gov-600 font-medium">
-                  {Math.round(complaint.ai.confidence * 100)}% confidence
+          {aiInfo ? (
+            <div className="rounded-xl border border-gov-200 bg-gov-50/50 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gov-600 text-white">
+                  <Cpu className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-navy-900">AI Analysis</div>
+                  <div className="text-[11px] text-gov-600 font-medium">
+                    {Math.round(aiInfo.confidence * 100)}% confidence
+                  </div>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <MetaItem compact label="Category" value={aiInfo.category} />
+                <MetaItem compact label="Severity" value={aiInfo.severity} />
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">AI Summary</div>
+                <p className="text-sm text-navy-700 leading-relaxed">{aiInfo.summary}</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <MetaItem compact label="Category" value={complaint.ai.category} />
-              <MetaItem compact label="Severity" value={complaint.ai.severity} />
-            </div>
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">AI Summary</div>
-              <p className="text-sm text-navy-700 leading-relaxed">{complaint.ai.summary}</p>
-            </div>
-          </div>
+          ) : null}
 
           {/* Timeline */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Status Timeline</h4>
             <div className="space-y-0">
-              {complaint.timeline.map((t, i) => {
-                const isLast = i === complaint.timeline.length - 1;
+              {timeline.map((t, i) => {
+                const isLast = i === timeline.length - 1;
                 return (
                   <div key={t.id} className="flex gap-3">
                     <div className="flex flex-col items-center">

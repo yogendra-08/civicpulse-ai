@@ -15,7 +15,6 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { aiService } from '@/services/aiService';
 import { realComplaintService } from '@/services/realComplaintService';
 import { wards } from '@/data/mockData';
-import { SeverityBadge } from '@/components/ui';
 import type { AIAnalysis } from '@/types';
 
 type Phase = 'form' | 'analyzing' | 'result';
@@ -59,7 +58,7 @@ export function ReportComplaintPage() {
       return;
     }
 
-    setCreatedId(complaint.complaint_number);
+    setCreatedId(complaint.complaint_number ?? complaint.id);
   }
 
   function handleReset() {

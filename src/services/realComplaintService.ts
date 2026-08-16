@@ -18,6 +18,42 @@ export interface UpdateComplaintData {
   resolutionDetails?: string;
 }
 
+const toDbStatus = (status?: ComplaintStatus): string | undefined => {
+  if (!status) return undefined;
+  const map: Record<ComplaintStatus, string> = {
+    Submitted: 'submitted',
+    Assigned: 'assigned',
+    'In Progress': 'in_progress',
+    Resolved: 'resolved',
+    Closed: 'closed',
+  };
+  return map[status];
+};
+
+const toDbCategory = (category?: ComplaintCategory): string | undefined => {
+  if (!category) return undefined;
+  const map: Record<ComplaintCategory, string> = {
+    'Road Issue': 'road_issue',
+    'Water Leakage': 'water_leakage',
+    Sanitation: 'sanitation',
+    Electrical: 'electrical',
+    Drainage: 'drainage',
+    'Public Sanitation': 'public_sanitation',
+  };
+  return map[category];
+};
+
+const toDbSeverity = (severity?: Severity): string | undefined => {
+  if (!severity) return undefined;
+  const map: Record<Severity, string> = {
+    Low: 'low',
+    Medium: 'medium',
+    High: 'high',
+    Critical: 'critical',
+  };
+  return map[severity];
+};
+
 export const realComplaintService = {
   // Create new complaint
   async createComplaint(userId: string, data: CreateComplaintData): Promise<{ complaint: Complaint | null; error: string | null }> {
@@ -37,27 +73,8 @@ export const realComplaintService = {
       // Get AI analysis
       const aiAnalysis = await aiService.analyze(data.title, data.description);
 
-      // Map AI category to database enum
-      const categoryMapping: Record<string, ComplaintCategory> = {
-        'Road Issue': 'road_issue',
-        'Water Leakage': 'water_leakage',
-        'Sanitation': 'sanitation',
-        'Electrical': 'electrical',
-        'Drainage': 'drainage',
-        'Public Sanitation': 'public_sanitation',
-      };
-
-      const dbCategory = categoryMapping[aiAnalysis.category] || 'sanitation';
-
-      // Map AI severity to database enum
-      const severityMapping: Record<string, Severity> = {
-        'Critical': 'critical',
-        'High': 'high',
-        'Medium': 'medium',
-        'Low': 'low',
-      };
-
-      const dbSeverity = severityMapping[aiAnalysis.severity] || 'medium';
+      const dbCategory = toDbCategory(aiAnalysis.category) || 'sanitation';
+      const dbSeverity = toDbSeverity(aiAnalysis.severity) || 'medium';
 
       // Get department ID from category
       const { data: department } = await supabase
@@ -217,7 +234,7 @@ export const realComplaintService = {
         .eq('assigned_officer_id', officerId);
 
       if (status) {
-        query = query.eq('status', status);
+        query = query.eq('status', toDbStatus(status) || status);
       }
 
       const { data: complaints, error } = await query
@@ -227,9 +244,16 @@ export const realComplaintService = {
         return { complaints: [], error: error.message };
       }
 
-      const formattedComplaints = (complaints || []).map((c: any) => ({
+      type ComplaintRow = {
+        citizen_profiles?: { full_name?: string };
+        [key: string]: unknown;
+      };
+
+      const formattedComplaints = (complaints || []).map((c: ComplaintRow) => ({
         ...c,
-        citizenName: c.citizen_profiles?.full_name,
+        citizenName: c.citizen_profiles && typeof c.citizen_profiles === 'object' && 'full_name' in c.citizen_profiles
+          ? c.citizen_profiles.full_name
+          : undefined,
       })) as Complaint[];
 
       return { complaints: formattedComplaints, error: null };
@@ -248,14 +272,15 @@ export const realComplaintService = {
     data: UpdateComplaintData
   ): Promise<{ complaint: Complaint | null; error: string | null }> {
     try {
-      const updateData: any = {
+      const updateData: Record<string, string | number | boolean | null> = {
         updated_at: new Date().toISOString(),
       };
 
       if (data.status) {
-        updateData.status = data.status;
-        
-        if (data.status === 'resolved') {
+        const dbStatus = toDbStatus(data.status) || data.status;
+        updateData.status = dbStatus;
+
+        if (dbStatus === 'resolved') {
           updateData.resolved_at = new Date().toISOString();
         }
       }
@@ -318,13 +343,13 @@ export const realComplaintService = {
         `);
 
       if (filters?.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', toDbStatus(filters.status) || filters.status);
       }
       if (filters?.severity) {
-        query = query.eq('severity', filters.severity);
+        query = query.eq('severity', toDbSeverity(filters.severity) || filters.severity);
       }
       if (filters?.category) {
-        query = query.eq('category', filters.category);
+        query = query.eq('category', toDbCategory(filters.category) || filters.category);
       }
       if (filters?.departmentId) {
         query = query.eq('department_id', filters.departmentId);
@@ -344,11 +369,24 @@ export const realComplaintService = {
         return { complaints: [], error: error.message };
       }
 
-      const formattedComplaints = (complaints || []).map((c: any) => ({
+      type ComplaintRow = {
+        citizen_profiles?: { full_name?: string };
+        departments?: { name?: string };
+        officers?: { badge_number?: string };
+        [key: string]: unknown;
+      };
+
+      const formattedComplaints = (complaints || []).map((c: ComplaintRow) => ({
         ...c,
-        citizenName: c.citizen_profiles?.full_name,
-        departmentName: c.departments?.name,
-        officerName: c.officers?.badge_number,
+        citizenName: c.citizen_profiles && typeof c.citizen_profiles === 'object' && 'full_name' in c.citizen_profiles
+          ? c.citizen_profiles.full_name
+          : undefined,
+        departmentName: c.departments && typeof c.departments === 'object' && 'name' in c.departments
+          ? c.departments.name
+          : undefined,
+        officerName: c.officers && typeof c.officers === 'object' && 'badge_number' in c.officers
+          ? c.officers.badge_number
+          : undefined,
       })) as Complaint[];
 
       return { complaints: formattedComplaints, error: null };
@@ -384,14 +422,16 @@ export const realComplaintService = {
         };
       }
 
+      const stats = (data as Record<string, number> | null) ?? {};
+
       return {
-        total: data.total_complaints || 0,
-        resolved: data.resolved_complaints || 0,
-        inProgress: data.in_progress_complaints || 0,
-        assigned: data.assigned_complaints || 0,
-        submitted: data.submitted_complaints || 0,
-        avgResolutionTime: data.avg_resolution_time || 0,
-        resolutionRate: data.resolution_rate || 0,
+        total: stats.total_complaints || 0,
+        resolved: stats.resolved_complaints || 0,
+        inProgress: stats.in_progress_complaints || 0,
+        assigned: stats.assigned_complaints || 0,
+        submitted: stats.submitted_complaints || 0,
+        avgResolutionTime: stats.avg_resolution_time || 0,
+        resolutionRate: stats.resolution_rate || 0,
         error: null,
       };
     } catch (error) {
@@ -416,7 +456,15 @@ export const realComplaintService = {
         return { departments: [], error: error.message };
       }
 
-      const departments = (data || []).map((d: any) => ({
+      type DepartmentStatRow = {
+        department_id: string;
+        department_name: string;
+        total_complaints: number;
+        resolved_complaints: number;
+        avg_resolution_time: number;
+      };
+
+      const departments = (data || []).map((d: DepartmentStatRow) => ({
         id: d.department_id,
         name: d.department_name,
         total: d.total_complaints,

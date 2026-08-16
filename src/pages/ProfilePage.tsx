@@ -22,12 +22,14 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
+  const citizenFields = user?.role === 'citizen' ? user : null;
+
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
-    phone: user?.phone || '',
-    ward: user?.ward || '',
-    address: user?.address || '',
+    phone: citizenFields?.phone || '',
+    ward: citizenFields?.ward || '',
+    address: citizenFields?.address || '',
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -38,11 +40,12 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (user) {
+      const citizenInfo = user.role === 'citizen' ? user : null;
       setFormData({
         fullName: user.name || '',
-        phone: user.phone || '',
-        ward: user.ward || '',
-        address: user.address || '',
+        phone: citizenInfo?.phone || '',
+        ward: citizenInfo?.ward || '',
+        address: citizenInfo?.address || '',
       });
     }
   }, [user]);
@@ -69,7 +72,7 @@ export function ProfilePage() {
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to update profile');
     } finally {
       setLoading(false);
@@ -113,7 +116,7 @@ export function ProfilePage() {
       setSuccess(true);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to update password');
     } finally {
       setLoading(false);

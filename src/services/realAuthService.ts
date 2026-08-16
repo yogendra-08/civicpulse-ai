@@ -43,11 +43,11 @@ export const realAuthService = {
       });
 
       if (authError) {
-        return { user: null as any, error: authError.message };
+        return { user: null as unknown as AuthUser, error: authError.message };
       }
 
       if (!authData.user) {
-        return { user: null as any, error: 'Registration failed' };
+        return { user: null as unknown as AuthUser, error: 'Registration failed' };
       }
 
       // Create citizen profile
@@ -64,7 +64,7 @@ export const realAuthService = {
       if (profileError) {
         // Rollback auth user if profile creation fails
         await supabase.auth.admin.deleteUser(authData.user.id);
-        return { user: null as any, error: profileError.message };
+        return { user: null as unknown as AuthUser, error: profileError.message };
       }
 
       // Create auth user object
@@ -73,16 +73,16 @@ export const realAuthService = {
         id: authData.user.id,
         name: data.fullName,
         email: data.email,
-        ward: data.ward,
-        phone: data.phone,
+        ward: data.ward ?? '',
+        phone: data.phone ?? '',
         joinedAt: authData.user.created_at,
       };
 
       return { user: authUser, error: null };
     } catch (error) {
-      return { 
-        user: null as any, 
-        error: error instanceof Error ? error.message : 'Registration failed' 
+      return {
+        user: null as unknown as AuthUser,
+        error: error instanceof Error ? error.message : 'Registration failed',
       };
     }
   },
@@ -96,11 +96,11 @@ export const realAuthService = {
       });
 
       if (authError) {
-        return { user: null as any, error: authError.message };
+        return { user: null as unknown as AuthUser, error: authError.message };
       }
 
       if (!authData.user) {
-        return { user: null as any, error: 'Login failed' };
+        return { user: null as unknown as AuthUser, error: 'Login failed' };
       }
 
       // Get user role from metadata
@@ -121,8 +121,8 @@ export const realAuthService = {
           id: authData.user.id,
           name: profile?.full_name || authData.user.user_metadata?.full_name || 'Citizen',
           email: authData.user.email!,
-          ward: profile?.ward,
-          phone: profile?.phone,
+          ward: profile?.ward ?? '',
+          phone: profile?.phone ?? '',
           joinedAt: authData.user.created_at,
         };
       } else if (role === 'officer') {
@@ -138,10 +138,10 @@ export const realAuthService = {
           id: authData.user.id,
           name: authData.user.user_metadata?.full_name || 'Officer',
           email: authData.user.email!,
-          departmentId: officer?.department_id,
-          ward: officer?.ward,
-          badge: officer?.badge_number,
-          rank: officer?.rank,
+          departmentId: officer?.department_id ?? '',
+          ward: officer?.ward ?? '',
+          badge: officer?.badge_number ?? '',
+          rank: officer?.rank ?? '',
         };
       } else if (role === 'admin') {
         authUser = {
@@ -152,7 +152,7 @@ export const realAuthService = {
           municipality: authData.user.user_metadata?.municipality || 'Municipal Corporation',
         };
       } else {
-        return { user: null as any, error: 'Invalid user role' };
+        return { user: null as unknown as AuthUser, error: 'Invalid user role' };
       }
 
       // Store session
@@ -162,15 +162,15 @@ export const realAuthService = {
       await supabase.from('audit_logs').insert({
         user_id: authData.user.id,
         user_role: role,
-        action: 'login' as any,
+        action: 'login',
         table_name: 'auth',
       });
 
       return { user: authUser, error: null };
     } catch (error) {
-      return { 
-        user: null as any, 
-        error: error instanceof Error ? error.message : 'Login failed' 
+      return {
+        user: null as unknown as AuthUser,
+        error: error instanceof Error ? error.message : 'Login failed',
       };
     }
   },
@@ -185,7 +185,7 @@ export const realAuthService = {
         await supabase.from('audit_logs').insert({
           user_id: user.id,
           user_role: user.role,
-          action: 'logout' as any,
+          action: 'logout',
           table_name: 'auth',
         });
       }
@@ -235,7 +235,7 @@ export const realAuthService = {
   async updatePassword(currentPassword: string, newPassword: string): Promise<{ error: string | null }> {
     try {
       // First verify current password by attempting to sign in
-      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: this.current()?.email || '',
         password: currentPassword,
       });

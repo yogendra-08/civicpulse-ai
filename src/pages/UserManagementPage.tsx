@@ -8,10 +8,7 @@ import {
   MoreVertical,
   User,
   Building2,
-  Trash2,
-  AlertCircle,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { supabase } from '@/services/realAuthService';
 
@@ -29,7 +26,6 @@ interface UserRow {
 }
 
 export function UserManagementPage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -43,48 +39,93 @@ export function UserManagementPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      let query: any;
-
       if (filter === 'citizen') {
-        query = supabase
+        const { data, error } = await supabase
           .from('citizen_profiles')
           .select('*, auth.users!inner(email, created_at, raw_user_meta_data)')
           .order('created_at', { ascending: false });
-      } else if (filter === 'officer') {
-        query = supabase
-          .from('officers')
-          .select('*, departments(name), auth.users!inner(email, created_at, raw_user_meta_data)')
-          .order('created_at', { ascending: false });
-      } else {
-        // For admin or all, we'll fetch from auth.users with metadata
-        const { data: authUsers } = await supabase.auth.admin.listUsers();
-        
-        const userRows: UserRow[] = authUsers.users.map((u: any) => ({
-          id: u.id,
-          email: u.email || '',
-          role: u.user_metadata?.role || 'citizen',
-          name: u.user_metadata?.full_name,
-          created_at: u.created_at,
+
+        if (error) throw error;
+
+        type QueryUserRow = {
+          user_id?: string;
+          id?: string;
+          email?: string;
+          auth_users?: { email?: string; created_at?: string };
+          full_name?: string;
+          name?: string;
+          ward?: string;
+          departments?: { name?: string };
+          badge_number?: string;
+          created_at?: string;
+        };
+
+        const userRows: UserRow[] = (data || []).map((u: QueryUserRow) => ({
+          id: u.user_id || u.id || '',
+          email: u.email || u.auth_users?.email || '',
+          role: 'citizen',
+          name: u.full_name || u.name,
+          ward: u.ward,
+          department: u.departments?.name,
+          badge: u.badge_number,
+          created_at: u.created_at || u.auth_users?.created_at || new Date().toISOString(),
         }));
 
         setUsers(userRows);
-        setLoading(false);
         return;
       }
 
-      const { data, error } = await query;
+      if (filter === 'officer') {
+        const { data, error } = await supabase
+          .from('officers')
+          .select('*, departments(name), auth.users!inner(email, created_at, raw_user_meta_data)')
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const userRows: UserRow[] = (data || []).map((u: any) => ({
-        id: u.user_id || u.id,
-        email: u.email || u.auth_users?.email,
-        role: filter,
-        name: u.full_name || u.name,
-        ward: u.ward,
-        department: u.departments?.name,
-        badge: u.badge_number,
-        created_at: u.created_at || u.auth_users?.created_at,
+        type QueryUserRow = {
+          user_id?: string;
+          id?: string;
+          email?: string;
+          auth_users?: { email?: string; created_at?: string };
+          full_name?: string;
+          name?: string;
+          ward?: string;
+          departments?: { name?: string };
+          badge_number?: string;
+          created_at?: string;
+        };
+
+        const userRows: UserRow[] = (data || []).map((u: QueryUserRow) => ({
+          id: u.user_id || u.id || '',
+          email: u.email || u.auth_users?.email || '',
+          role: 'officer',
+          name: u.full_name || u.name,
+          ward: u.ward,
+          department: u.departments?.name,
+          badge: u.badge_number,
+          created_at: u.created_at || u.auth_users?.created_at || new Date().toISOString(),
+        }));
+
+        setUsers(userRows);
+        return;
+      }
+
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+
+      type AuthUserSummary = {
+        id: string;
+        email?: string;
+        created_at: string;
+        user_metadata?: { role?: UserRole; full_name?: string };
+      };
+
+      const userRows: UserRow[] = (authUsers?.users ?? []).map((u: AuthUserSummary) => ({
+        id: u.id,
+        email: u.email || '',
+        role: u.user_metadata?.role || 'citizen',
+        name: u.user_metadata?.full_name,
+        created_at: u.created_at,
       }));
 
       setUsers(userRows);

@@ -232,17 +232,23 @@ SECTION 3: TECHNICAL APPROACH
 
 Slide 7: Technologies Used
 ---------------------------
-FINAL SLIDE TITLE: Technology Stack: Modern Web Technologies
+FINAL SLIDE TITLE: Technology Stack: Modern Web Technologies and Tools
 
 BULLET POINTS:
-- Frontend: React 18.3.1 with TypeScript for type-safe component development
-- Build Tool: Vite 5.4.2 for fast development and optimized production builds
-- Styling: TailwindCSS 3.4.1 for responsive, utility-first design
-- Routing: React Router DOM 7.18.2 for client-side navigation and role-based routes
-- Backend: Supabase 2.57.4 for authentication and PostgreSQL database
-- Icons: Lucide React 0.446.0 for consistent, modern iconography
-- Charts: Recharts 3.10.1 for interactive data visualization
-- AI: Custom keyword-based classification engine with context analysis
+- Frontend: React 18.3.1 for building the user interfaces
+- Language: TypeScript 5.5.3 for type-safe and maintainable code
+- Build Tool: Vite 5.4.2 for fast local development and optimized production builds
+- Styling: TailwindCSS 3.4.1 for modern, responsive utility-first UI design
+- CSS Tooling: PostCSS 8.4.35 and Autoprefixer 10.4.18 for styling pipeline support
+- Routing: React Router DOM 7.18.2 for page navigation and protected role-based routes
+- Backend: Supabase 2.57.4 for authentication, PostgreSQL database, and API access
+- Database: PostgreSQL managed through Supabase for complaints, users, officers, and departments
+- Analytics: Recharts 3.10.1 for dashboards and visual analytics
+- Icons: Lucide React 0.446.0 for clean UI icons and dashboard visuals
+- AI Engine: Custom complaint classification service using keyword analysis and severity logic
+- Code Quality: ESLint 9.9.1 and TypeScript ESLint 8.3.0 for linting and validation
+- Deployment Ready: Netlify/Vercel-friendly frontend deployment with environment-based configuration
+- Development Workflow: Node.js, npm, Git, and GitHub for project development and version control
 
 PRESENTER NOTES:
 Explain the technology choices. React + TypeScript ensures type safety and maintainability. Vite provides fast development experience. TailwindCSS enables rapid UI development with consistent design. React Router handles navigation and role-based access control. Supabase provides backend-as-a-service with auth and database. Recharts powers the analytics dashboards. The custom AI engine uses keyword analysis with context understanding for classification.

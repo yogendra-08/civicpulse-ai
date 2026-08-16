@@ -13,8 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ComplaintCard, ComplaintDetailModal } from '@/components/ComplaintComponents';
 import { LoadingOverlay, EmptyState, StatusBadge } from '@/components/ui';
-import { complaintService } from '@/services/complaintService';
-import { departments } from '@/data/mockData';
+import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint, ComplaintStatus } from '@/types';
 
 const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved'];
@@ -30,6 +29,7 @@ const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
 export function OfficerDashboard() {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ComplaintStatus | 'All'>('All');
@@ -38,7 +38,19 @@ export function OfficerDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'officer') return;
-    complaintService.listByOfficer(user.id).then(setComplaints);
+
+    if (!user.officerRecordId) {
+      setLoadError('Officer profile not linked. Ask admin to add you in the officers table.');
+      setComplaints([]);
+      return;
+    }
+
+    realComplaintService.getOfficerComplaints(user.officerRecordId).then(({ complaints, error }) => {
+      if (error) {
+        setLoadError(error);
+      }
+      setComplaints(complaints);
+    });
   }, [user]);
 
   const stats = useMemo(() => {
@@ -57,37 +69,45 @@ export function OfficerDashboard() {
     return complaints.filter((c) => {
       const matchFilter = filter === 'All' || c.status === filter;
       const q = search.toLowerCase();
+      const displayId = (c.complaint_number ?? c.id).toLowerCase();
       const matchSearch =
         !q ||
         c.title.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q) ||
+        displayId.includes(q) ||
         c.location.toLowerCase().includes(q);
       return matchFilter && matchSearch;
     });
   }, [complaints, filter, search]);
 
   async function handleUpdateStatus() {
-    if (!selected) return;
+    if (!selected || !user || user.role !== 'officer') return;
     const next = nextStatus[selected.status];
     if (!next) return;
+
     setUpdating(true);
-    const updated = await complaintService.updateStatus(
+    const { complaint: updated, error } = await realComplaintService.updateComplaintStatus(
       selected.id,
-      next,
-      note.trim() || `Status updated to ${next}.`,
-      user?.role === 'officer' ? user.name : 'Officer',
+      user.id,
+      {
+        status: next,
+        note: note.trim() || `Status updated to ${next}.`,
+      },
     );
     setUpdating(false);
-    if (updated) {
-      setSelected(updated);
-      setComplaints((prev) => prev?.map((c) => (c.id === updated.id ? updated : c)) ?? null);
-      setNote('');
+
+    if (error || !updated) {
+      alert(error || 'Failed to update complaint');
+      return;
     }
+
+    setSelected(updated);
+    setComplaints((prev) => prev?.map((c) => (c.id === updated.id ? updated : c)) ?? null);
+    setNote('');
   }
 
   if (!complaints) return <DashboardLayout><LoadingOverlay label="Loading assigned complaints..." /></DashboardLayout>;
 
-  const deptName = user?.role === 'officer' ? departments.find((d) => d.id === user.departmentId)?.name : '';
+  const deptName = user?.role === 'officer' ? user.departmentName ?? 'Department' : '';
   const next = selected ? nextStatus[selected.status] ?? null : null;
 
   return (
@@ -98,6 +118,12 @@ export function OfficerDashboard() {
           {deptName} · {user?.role === 'officer' ? user.ward : ''} · Badge {user?.role === 'officer' ? user.badge : ''}
         </p>
       </div>
+
+      {loadError && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          {loadError}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -142,7 +168,11 @@ export function OfficerDashboard() {
           <EmptyState
             icon={<Inbox className="h-12 w-12" />}
             title="No complaints assigned"
-            message="You have no complaints matching the current filter."
+            message={
+              complaints.length === 0
+                ? 'Complaints appear here after they are auto-assigned to your officer profile in the same department.'
+                : 'You have no complaints matching the current filter.'
+            }
           />
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">

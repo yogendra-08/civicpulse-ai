@@ -82,7 +82,7 @@ export function ComplaintCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-gov-600 font-mono">{complaint.id}</span>
+            <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
             <SeverityBadge severity={complaint.severity} />
           </div>
           <h3 className="mt-1 font-semibold text-navy-900 text-sm leading-snug line-clamp-2 group-hover:text-gov-700 transition-colors">
@@ -100,7 +100,7 @@ export function ComplaintCard({
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
             <StatusBadge status={complaint.status} />
-            <span className="text-xs text-slate-400 truncate">{deptName(complaint.departmentId)}</span>
+            <span className="text-xs text-slate-400 truncate">{complaint.departmentName ?? deptName(complaint.departmentId)}</span>
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-navy-400 group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -136,7 +136,7 @@ export function ComplaintDetailModal({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-gov-600 font-mono">{complaint.id}</span>
+                <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
                 <SeverityBadge severity={complaint.severity} />
                 <StatusBadge status={complaint.status} />
               </div>

@@ -30,14 +30,21 @@ AI-powered civic grievance reporting and resolution platform for municipal corpo
 
 ## Tech Stack
 
-- **Frontend Framework**: React 18.3.1 with TypeScript
+- **Frontend Library**: React 18.3.1
+- **Language**: TypeScript 5.5.3
 - **Build Tool**: Vite 5.4.2
 - **Styling**: TailwindCSS 3.4.1
+- **UI Utilities**: PostCSS 8.4.35 and Autoprefixer 10.4.18
 - **Routing**: React Router DOM 7.18.2
-- **Backend**: Supabase 2.57.4 (Authentication & Database)
+- **Backend & Auth**: Supabase 2.57.4 (PostgreSQL database + authentication)
+- **Database**: PostgreSQL via Supabase
+- **Analytics & Charts**: Recharts 3.10.1
 - **Icons**: Lucide React 0.446.0
-- **Charts**: Recharts 3.10.1
-- **AI Integration**: Custom AI service for complaint classification
+- **AI Logic**: Custom AI service for complaint classification, severity detection, and department routing
+- **Code Quality**: ESLint 9.9.1 and TypeScript ESLint 8.3.0
+- **Runtime/Environment**: Node.js (v18+ recommended)
+- **Deployment**: Netlify / Vercel friendly static frontend deployment
+- **Version Control**: Git and GitHub
 
 ## Installation
 

@@ -54,6 +54,99 @@ const toDbSeverity = (severity?: Severity): string | undefined => {
   return map[severity];
 };
 
+const fromDbStatus = (status: string): ComplaintStatus => {
+  const map: Record<string, ComplaintStatus> = {
+    submitted: 'Submitted',
+    assigned: 'Assigned',
+    in_progress: 'In Progress',
+    resolved: 'Resolved',
+    closed: 'Closed',
+  };
+  return map[status] ?? 'Submitted';
+};
+
+const fromDbCategory = (category: string): ComplaintCategory => {
+  const map: Record<string, ComplaintCategory> = {
+    road_issue: 'Road Issue',
+    water_leakage: 'Water Leakage',
+    sanitation: 'Sanitation',
+    electrical: 'Electrical',
+    drainage: 'Drainage',
+    public_sanitation: 'Public Sanitation',
+  };
+  return map[category] ?? 'Sanitation';
+};
+
+const fromDbSeverity = (severity: string): Severity => {
+  const map: Record<string, Severity> = {
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    critical: 'Critical',
+  };
+  return map[severity] ?? 'Medium';
+};
+
+type DbComplaintRow = {
+  id: string;
+  complaint_number?: string;
+  title: string;
+  description: string;
+  location: string;
+  ward: string;
+  category: string;
+  severity: string;
+  status: string;
+  citizen_id?: string;
+  department_id?: string;
+  assigned_officer_id?: string;
+  image_url?: string;
+  created_at: string;
+  updated_at?: string;
+  resolved_at?: string;
+  ai_category?: string;
+  ai_severity?: string;
+  ai_confidence?: number;
+  ai_summary?: string;
+  departments?: { id?: string; name?: string } | null;
+  citizen_profiles?: { full_name?: string; phone?: string } | null;
+  officers?: { badge_number?: string } | null;
+};
+
+export function mapDbComplaint(row: DbComplaintRow): Complaint {
+  return {
+    id: row.id,
+    complaint_number: row.complaint_number,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    ward: row.ward,
+    category: fromDbCategory(row.category),
+    severity: fromDbSeverity(row.severity),
+    status: fromDbStatus(row.status),
+    citizenId: row.citizen_id,
+    departmentId: row.department_id,
+    officerId: row.assigned_officer_id,
+    departmentName: row.departments?.name,
+    officerName: row.officers?.badge_number,
+    citizenName: row.citizen_profiles?.full_name,
+    imageUrl: row.image_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    resolvedAt: row.resolved_at,
+    ai: row.ai_category
+      ? {
+          category: fromDbCategory(row.ai_category),
+          severity: fromDbSeverity(row.ai_severity ?? row.severity),
+          departmentId: row.department_id ?? '',
+          officerId: row.assigned_officer_id ?? '',
+          summary: row.ai_summary ?? '',
+          confidence: row.ai_confidence ?? 0,
+        }
+      : undefined,
+  };
+}
+
 export const realComplaintService = {
   // Create new complaint
   async createComplaint(userId: string, data: CreateComplaintData): Promise<{ complaint: Complaint | null; error: string | null }> {
@@ -227,7 +320,10 @@ export const realComplaintService = {
     try {
       const { data: complaints, error } = await supabase
         .from('complaints')
-        .select('*')
+        .select(`
+          *,
+          departments (id, name)
+        `)
         .eq('citizen_id', userId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -236,7 +332,10 @@ export const realComplaintService = {
         return { complaints: [], error: error.message };
       }
 
-      return { complaints: (complaints || []) as Complaint[], error: null };
+      return {
+        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        error: null,
+      };
     } catch (error) {
       return { 
         complaints: [], 
@@ -246,15 +345,16 @@ export const realComplaintService = {
   },
 
   // Get officer's assigned complaints
-  async getOfficerComplaints(officerId: string, status?: ComplaintStatus): Promise<{ complaints: Complaint[]; error: string | null }> {
+  async getOfficerComplaints(officerRecordId: string, status?: ComplaintStatus): Promise<{ complaints: Complaint[]; error: string | null }> {
     try {
       let query = supabase
         .from('complaints')
         .select(`
           *,
+          departments (id, name),
           citizen_profiles (full_name, phone)
         `)
-        .eq('assigned_officer_id', officerId);
+        .eq('assigned_officer_id', officerRecordId);
 
       if (status) {
         query = query.eq('status', toDbStatus(status) || status);
@@ -267,19 +367,10 @@ export const realComplaintService = {
         return { complaints: [], error: error.message };
       }
 
-      type ComplaintRow = {
-        citizen_profiles?: { full_name?: string };
-        [key: string]: unknown;
+      return {
+        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        error: null,
       };
-
-      const formattedComplaints = (complaints || []).map((c: ComplaintRow) => ({
-        ...c,
-        citizenName: c.citizen_profiles && typeof c.citizen_profiles === 'object' && 'full_name' in c.citizen_profiles
-          ? c.citizen_profiles.full_name
-          : undefined,
-      })) as Complaint[];
-
-      return { complaints: formattedComplaints, error: null };
     } catch (error) {
       return { 
         complaints: [], 
@@ -321,22 +412,23 @@ export const realComplaintService = {
 
       // Add timeline entry
       if (data.status) {
+        const dbStatus = toDbStatus(data.status) || data.status;
+
         await supabase.from('complaint_timeline').insert({
           complaint_id: complaintId,
-          status: data.status,
+          status: dbStatus,
           note: data.note || `Status updated to ${data.status}`,
           performed_by: userId,
           performed_by_role: 'officer',
         });
 
-        // Notify citizen about status change
         await supabase.rpc('notify_status_change', {
           p_complaint_id: complaintId,
-          p_new_status: data.status,
+          p_new_status: dbStatus,
         });
       }
 
-      return { complaint: complaint as Complaint, error: null };
+      return { complaint: mapDbComplaint(complaint as DbComplaintRow), error: null };
     } catch (error) {
       return { 
         complaint: null, 

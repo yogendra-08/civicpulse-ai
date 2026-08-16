@@ -38,6 +38,9 @@ export const realAuthService = {
           data: {
             role: 'citizen' as Role,
             full_name: data.fullName,
+            phone: data.phone,
+            ward: data.ward,
+            address: data.address,
           },
         },
       });
@@ -53,13 +56,16 @@ export const realAuthService = {
       // Create citizen profile
       const { error: profileError } = await supabase
         .from('citizen_profiles')
-        .insert({
-          user_id: authData.user.id,
-          full_name: data.fullName,
-          phone: data.phone,
-          ward: data.ward,
-          address: data.address,
-        });
+        .upsert(
+          {
+            user_id: authData.user.id,
+            full_name: data.fullName,
+            phone: data.phone,
+            ward: data.ward,
+            address: data.address,
+          },
+          { onConflict: 'user_id' }
+        );
 
       if (profileError) {
         // Rollback auth user if profile creation fails
@@ -136,9 +142,11 @@ export const realAuthService = {
         authUser = {
           role: 'officer',
           id: authData.user.id,
+          officerRecordId: officer?.id ?? '',
           name: authData.user.user_metadata?.full_name || 'Officer',
           email: authData.user.email!,
           departmentId: officer?.department_id ?? '',
+          departmentName: officer?.departments?.name ?? '',
           ward: officer?.ward ?? '',
           badge: officer?.badge_number ?? '',
           rank: officer?.rank ?? '',

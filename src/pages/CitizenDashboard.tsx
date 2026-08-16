@@ -15,10 +15,10 @@ import { useAuth } from '@/context/AuthContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { ComplaintCard, ComplaintDetailModal } from '@/components/ComplaintComponents';
 import { LoadingOverlay, EmptyState } from '@/components/ui';
-import { complaintService } from '@/services/complaintService';
+import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint, ComplaintStatus } from '@/types';
 
-const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved'];
+const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Submitted', 'Assigned', 'In Progress', 'Resolved'];
 
 export function CitizenDashboard() {
   const { user } = useAuth();
@@ -29,7 +29,13 @@ export function CitizenDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'citizen') return;
-    complaintService.listByCitizen(user.id).then(setComplaints);
+
+    realComplaintService.getCitizenComplaints(user.id).then(({ complaints, error }) => {
+      if (error) {
+        console.error('Failed to load complaints:', error);
+      }
+      setComplaints(complaints);
+    });
   }, [user]);
 
   const stats = useMemo(() => {
@@ -39,6 +45,7 @@ export function CitizenDashboard() {
       assigned: complaints.filter((c) => c.status === 'Assigned').length,
       inProgress: complaints.filter((c) => c.status === 'In Progress').length,
       resolved: complaints.filter((c) => c.status === 'Resolved').length,
+      submitted: complaints.filter((c) => c.status === 'Submitted').length,
     };
   }, [complaints]);
 

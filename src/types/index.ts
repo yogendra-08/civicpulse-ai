@@ -79,9 +79,11 @@ export interface CitizenUser {
 
 export interface OfficerUser {
   id: string;
+  officerRecordId: string;
   name: string;
   email: string;
   departmentId: string;
+  departmentName?: string;
   ward: string;
   badge: string;
   rank: string;

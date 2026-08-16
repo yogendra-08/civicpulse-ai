@@ -267,6 +267,12 @@ CREATE POLICY "Service role can insert audit logs"
     TO service_role
     WITH CHECK (true);
 
+-- Allow authenticated users to insert audit logs (for triggers)
+CREATE POLICY "Authenticated can insert audit logs"
+    ON audit_logs FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
 -- No one can delete audit logs (immutable)
 CREATE POLICY "No one can delete audit logs"
     ON audit_logs FOR DELETE

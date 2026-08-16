@@ -45,15 +45,18 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 GRANT EXECUTE ON FUNCTION create_citizen_profile TO anon;
 GRANT EXECUTE ON FUNCTION create_citizen_profile TO authenticated;
 
--- 5. Fix complaints RLS policy to properly check citizen profile
+-- 5. Fix complaints RLS policy to avoid infinite recursion
 DROP POLICY IF EXISTS "Citizens can view their own complaints" ON complaints;
 CREATE POLICY "Citizens can view their own complaints"
     ON complaints FOR SELECT
-    USING (
-        citizen_id IN (
-            SELECT user_id FROM citizen_profiles WHERE user_id = auth.uid()
-        )
-    );
+    USING (citizen_id = auth.uid());
 
--- 6. Verify all fixes
+-- 6. Fix audit logs RLS
+DROP POLICY IF EXISTS "Authenticated can insert audit logs" ON audit_logs;
+CREATE POLICY "Authenticated can insert audit logs"
+    ON audit_logs FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+-- 7. Verify all fixes
 SELECT 'All fixes applied successfully' as status;

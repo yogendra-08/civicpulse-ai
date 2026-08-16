@@ -58,19 +58,6 @@ export const realComplaintService = {
   // Create new complaint
   async createComplaint(userId: string, data: CreateComplaintData): Promise<{ complaint: Complaint | null; error: string | null }> {
     try {
-      // Verify citizen profile exists
-      const { data: citizenProfile, error: profileError } = await supabase
-        .from('citizen_profiles')
-        .select('user_id')
-        .eq('user_id', userId);
-
-      console.log('Profile check:', { citizenProfile, profileError, userId });
-
-      if (profileError || !citizenProfile || citizenProfile.length === 0) {
-        console.error('Profile not found:', { profileError, citizenProfile });
-        return { complaint: null, error: 'Citizen profile not found. Please complete your registration.' };
-      }
-
       // Check if user can file complaint (rate limiting)
       const { data: canFile, error: rateLimitError } = await supabase
         .rpc('can_file_complaint', { p_user_id: userId });
@@ -93,35 +80,58 @@ export const realComplaintService = {
       const { data: department } = await supabase
         .from('departments')
         .select('id')
-        .eq('name', aiAnalysis.departmentId ?
+        .eq('name', aiAnalysis.departmentId ? 
           ['Roads & Infrastructure', 'Water Works', 'Sanitation & Solid Waste', 'Electrical & Street Lighting', 'Drainage & Sewerage']
             .find(dept => dept.toLowerCase().includes(aiAnalysis.departmentId?.toLowerCase() || '')) || 'Sanitation & Solid Waste'
           : 'Sanitation & Solid Waste')
         .single();
 
-      // Create complaint
-      const { data: complaint, error: insertError } = await supabase
-        .from('complaints')
-        .insert({
-          citizen_id: userId,
-          title: data.title,
-          description: data.description,
-          location: data.location,
-          ward: data.ward,
-          category: dbCategory,
-          severity: dbSeverity,
-          status: 'submitted',
-          department_id: department?.id,
-          image_url: data.imageUrl,
-          ai_category: dbCategory,
-          ai_severity: dbSeverity,
-          ai_confidence: aiAnalysis.confidence,
-          ai_summary: aiAnalysis.summary,
-          latitude: data.latitude,
-          longitude: data.longitude,
-        })
-        .select()
-        .single();
+      // Create complaint (retry on complaint_number unique constraint conflicts)
+      let complaint: unknown = null;
+      let insertError: any = null;
+      const maxAttempts = 4;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const res = await supabase
+          .from('complaints')
+          .insert({
+            citizen_id: userId,
+            title: data.title,
+            description: data.description,
+            location: data.location,
+            ward: data.ward,
+            category: dbCategory,
+            severity: dbSeverity,
+            status: 'submitted',
+            department_id: department?.id,
+            image_url: data.imageUrl,
+            ai_category: dbCategory,
+            ai_severity: dbSeverity,
+            ai_confidence: aiAnalysis.confidence,
+            ai_summary: aiAnalysis.summary,
+            latitude: data.latitude,
+            longitude: data.longitude,
+          })
+          .select()
+          .single();
+
+        complaint = res.data;
+        insertError = res.error;
+
+        if (!insertError) break;
+
+        const msg = (insertError && insertError.message) || '';
+        // Postgres unique violation code 23505, or specific complaint_number key
+        if (msg.includes('complaints_complaint_number_key') || insertError.code === '23505') {
+          if (attempt < maxAttempts) {
+            // small backoff before retrying
+            await new Promise((r) => setTimeout(r, 150 * attempt));
+            continue;
+          }
+        }
+
+        // Non-unique-error or exhausted attempts
+        break;
+      }
 
       if (insertError) {
         return { complaint: null, error: insertError.message };

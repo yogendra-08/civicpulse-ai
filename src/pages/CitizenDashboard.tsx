@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ClipboardList,
   CheckCircle2,
@@ -20,7 +21,16 @@ import type { Complaint, ComplaintStatus } from '@/types';
 
 const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Submitted', 'Assigned', 'In Progress', 'Resolved'];
 
+const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
+  All: 'filters.all',
+  Submitted: 'complaints.status.submitted',
+  Assigned: 'complaints.status.assigned',
+  'In Progress': 'complaints.status.inProgress',
+  Resolved: 'complaints.status.resolved',
+};
+
 export function CitizenDashboard() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[] | null>(null);
   const [selected, setSelected] = useState<Complaint | null>(null);
@@ -64,22 +74,28 @@ export function CitizenDashboard() {
     });
   }, [complaints, filter, search]);
 
-  if (!complaints) return <DashboardLayout><LoadingOverlay label="Loading your complaints..." /></DashboardLayout>;
+  const joinedDate = user?.role === 'citizen'
+    ? new Date(user.joinedAt).toLocaleDateString(i18n.language, { month: 'short', year: 'numeric' })
+    : '';
+
+  if (!complaints) return <DashboardLayout><LoadingOverlay label={t('dashboard.loadingComplaints')} /></DashboardLayout>;
 
   return (
     <DashboardLayout>
       {/* Welcome header */}
       <div className="mb-6 animate-fade-in">
-        <h1 className="text-2xl font-extrabold text-navy-900">Welcome back, {user?.role === 'citizen' ? user.name.split(' ')[0] : ''}</h1>
-        <p className="text-slate-500 mt-1">Track your complaints and report new civic issues in your ward.</p>
+        <h1 className="text-2xl font-extrabold text-navy-900">
+          {t('dashboard.welcomeBackName', { name: user?.role === 'citizen' ? user.name.split(' ')[0] : '' })}
+        </h1>
+        <p className="text-slate-500 mt-1">{t('dashboard.trackComplaints')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={ClipboardList} label="Total Complaints" value={stats.total} color="bg-gov-50 text-gov-600" />
-        <StatCard icon={Clock} label="Assigned" value={stats.assigned} color="bg-blue-50 text-blue-600" />
-        <StatCard icon={Clock} label="In Progress" value={stats.inProgress} color="bg-saffron-50 text-saffron-600" />
-        <StatCard icon={CheckCircle2} label="Resolved" value={stats.resolved} color="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={ClipboardList} label={t('dashboard.stats.totalComplaints')} value={stats.total} color="bg-gov-50 text-gov-600" />
+        <StatCard icon={Clock} label={t('dashboard.stats.assigned')} value={stats.assigned} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={Clock} label={t('dashboard.stats.inProgress')} value={stats.inProgress} color="bg-saffron-50 text-saffron-600" />
+        <StatCard icon={CheckCircle2} label={t('dashboard.stats.resolved')} value={stats.resolved} color="bg-emerald-50 text-emerald-600" />
       </div>
 
       {/* Profile + Quick action */}
@@ -93,7 +109,7 @@ export function CitizenDashboard() {
               <div className="font-bold text-navy-900 text-lg">{user?.role === 'citizen' ? user.name : ''}</div>
               <div className="text-sm text-slate-500 flex items-center gap-3 mt-0.5">
                 <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {user?.role === 'citizen' ? user.ward : ''}</span>
-                <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Joined {user?.role === 'citizen' ? new Date(user.joinedAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : ''}</span>
+                <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {t('dashboard.joined', { date: joinedDate })}</span>
               </div>
             </div>
           </div>
@@ -103,8 +119,8 @@ export function CitizenDashboard() {
             <FilePlus className="h-7 w-7" />
           </div>
           <div className="flex-1">
-            <div className="font-bold text-navy-900">Report a Complaint</div>
-            <div className="text-sm text-slate-500">AI will auto-categorize and route it</div>
+            <div className="font-bold text-navy-900">{t('navigation.reportComplaint')}</div>
+            <div className="text-sm text-slate-500">{t('dashboard.reportComplaintHint')}</div>
           </div>
           <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-gov-500 transition" />
         </Link>
@@ -113,14 +129,14 @@ export function CitizenDashboard() {
       {/* Complaints section */}
       <div className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-bold text-navy-900">My Complaints</h2>
+          <h2 className="text-lg font-bold text-navy-900">{t('navigation.myComplaints')}</h2>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('common.search')}
                 className="input pl-9 py-2 text-sm w-full sm:w-48"
               />
             </div>
@@ -133,7 +149,7 @@ export function CitizenDashboard() {
                     filter === f ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-700'
                   }`}
                 >
-                  {f}
+                  {t(statusFilterKeys[f])}
                 </button>
               ))}
             </div>
@@ -143,12 +159,12 @@ export function CitizenDashboard() {
         {filtered.length === 0 ? (
           <EmptyState
             icon={<Inbox className="h-12 w-12" />}
-            title={complaints.length === 0 ? 'No complaints yet' : 'No matching complaints'}
-            message={complaints.length === 0 ? 'Report a civic issue and track its resolution here.' : 'Try adjusting your search or filter.'}
+            title={complaints.length === 0 ? t('dashboard.noComplaintsYet') : t('dashboard.noMatchingComplaints')}
+            message={complaints.length === 0 ? t('dashboard.reportIssueTrack') : t('dashboard.adjustSearchFilter')}
             action={
               complaints.length === 0 ? (
                 <Link to="/citizen/report" className="btn-primary text-sm">
-                  <FilePlus className="h-4 w-4" /> Report a Complaint
+                  <FilePlus className="h-4 w-4" /> {t('navigation.reportComplaint')}
                 </Link>
               ) : undefined
             }

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
   Bell,
@@ -15,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { notifications } from '@/data/mockData';
 import type { Role } from '@/types';
 
@@ -24,35 +26,25 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navByRole: Record<Role, NavItem[]> = {
-  citizen: [
-    { label: 'Dashboard', to: '/citizen', icon: LayoutDashboard },
-    { label: 'Report Complaint', to: '/citizen/report', icon: FilePlus },
-    { label: 'My Complaints', to: '/citizen', icon: ClipboardList },
-  ],
-  officer: [
-    { label: 'Dashboard', to: '/officer', icon: LayoutDashboard },
-    { label: 'Assigned Complaints', to: '/officer', icon: ClipboardList },
-  ],
-  admin: [
-    { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
-    { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
-  ],
-};
-
-function roleLabel(role: Role): string {
-  return role === 'citizen' ? 'Citizen' : role === 'officer' ? 'Field Officer' : 'Administrator';
+function roleLabel(role: Role, t: (key: string) => string): string {
+  const labels: Record<Role, string> = {
+    citizen: t('roles.citizen'),
+    officer: t('roles.officer'),
+    admin: t('roles.admin'),
+  };
+  return labels[role];
 }
 
-function userMeta(user: ReturnType<typeof useAuth>['user']) {
+function userMeta(user: ReturnType<typeof useAuth>['user'], t: (key: string) => string) {
   if (!user) return { primary: '', secondary: '' };
-  if (user.role === 'citizen') return { primary: user.name, secondary: `Resident · ${user.ward}` };
+  if (user.role === 'citizen') return { primary: user.name, secondary: `${t('roles.resident')} · ${user.ward}` };
   if (user.role === 'officer') return { primary: user.name, secondary: `${user.rank} · ${user.badge}` };
   return { primary: user.name, secondary: user.municipality };
 }
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,8 +52,26 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   if (!user) return null;
+
+  // Dynamic navigation based on role and translations
+  const navByRole: Record<Role, NavItem[]> = {
+    citizen: [
+      { label: t('navigation.dashboard'), to: '/citizen', icon: LayoutDashboard },
+      { label: t('navigation.reportComplaint'), to: '/citizen/report', icon: FilePlus },
+      { label: t('navigation.myComplaints'), to: '/citizen', icon: ClipboardList },
+    ],
+    officer: [
+      { label: t('navigation.dashboard'), to: '/officer', icon: LayoutDashboard },
+      { label: t('navigation.assignedComplaints'), to: '/officer', icon: ClipboardList },
+    ],
+    admin: [
+      { label: t('navigation.dashboard'), to: '/admin', icon: LayoutDashboard },
+      { label: t('navigation.analytics'), to: '/admin/analytics', icon: BarChart3 },
+    ],
+  };
+
   const items = navByRole[user.role];
-  const meta = userMeta(user);
+  const meta = userMeta(user, t);
   const unread = notifications.filter((n) => !n.read).length;
 
   const isActive = (to: string) =>
@@ -93,10 +103,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="leading-tight">
               <div className="font-extrabold text-white text-base">
-                CivicPulse <span className="text-gov-400">AI</span>
+                {t('app.title')}
               </div>
               <div className="text-[9px] font-semibold uppercase tracking-wider text-navy-300">
-                {roleLabel(user.role)} Portal
+                {roleLabel(user.role, t)}
               </div>
             </div>
           </Link>
@@ -110,7 +120,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
           <div className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-navy-400">
-            Menu
+            {t('layout.mainMenu')}
           </div>
           {items.map((item) => {
             const active = isActive(item.to);
@@ -160,13 +170,15 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
-                placeholder="Search complaints, wards..."
+                placeholder={t('common.search')}
                 className="w-full rounded-lg bg-slate-100 border border-transparent pl-9 pr-3 py-2 text-sm text-navy-800 placeholder:text-slate-400 focus:bg-white focus:border-gov-400 focus:outline-none focus:ring-2 focus:ring-gov-100 transition"
               />
             </div>
           </div>
 
           <div className="flex-1 sm:hidden" />
+
+          <LanguageSwitcher />
 
           <div className="relative">
             <button
@@ -185,16 +197,20 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                 <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-slate-200 shadow-card-hover z-40 animate-scale-in origin-top-right">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <span className="font-bold text-navy-900 text-sm">Notifications</span>
-                    <span className="text-xs text-slate-400">{unread} unread</span>
+                    <span className="font-bold text-navy-900 text-sm">{t('dashboard.notifications')}</span>
+                    <span className="text-xs text-slate-400">{t('layout.unread', { count: unread })}</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto scrollbar-thin divide-y divide-slate-100">
                     {notifications.map((n) => (
                       <div key={n.id} className={`px-4 py-3 flex gap-3 ${!n.read ? 'bg-gov-50/50' : ''}`}>
                         <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${n.read ? 'bg-slate-300' : n.type === 'alert' ? 'bg-red-500' : 'bg-gov-500'}`} />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-navy-800">{n.title}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">{n.body}</div>
+                          <div className="text-sm font-semibold text-navy-800">
+                            {t(`notifications.${n.id}.title`, { defaultValue: n.title })}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {t(`notifications.${n.id}.body`, { defaultValue: n.body })}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -214,7 +230,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
               <div className="hidden sm:block text-left leading-tight">
                 <div className="text-sm font-semibold text-navy-800">{meta.primary.split(' ')[0]}</div>
-                <div className="text-[10px] text-slate-400">{roleLabel(user.role)}</div>
+                <div className="text-[10px] text-slate-400">{roleLabel(user.role, t)}</div>
               </div>
               <ChevronDown className="hidden sm:block h-4 w-4 text-slate-400" />
             </button>
@@ -232,7 +248,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
                       className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition font-medium"
                     >
                       <LogOut className="h-4 w-4" />
-                      Sign Out
+                      {t('navigation.logout')}
                     </button>
                   </div>
                 </div>

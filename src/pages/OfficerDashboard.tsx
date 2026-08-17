@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -18,6 +19,15 @@ import type { Complaint, ComplaintStatus } from '@/types';
 
 const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved'];
 
+const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
+  All: 'filters.all',
+  Submitted: 'complaints.status.submitted',
+  Assigned: 'complaints.status.assigned',
+  'In Progress': 'complaints.status.inProgress',
+  Resolved: 'complaints.status.resolved',
+  Closed: 'complaints.status.closed',
+};
+
 const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
   Submitted: 'Assigned',
   Assigned: 'In Progress',
@@ -27,6 +37,7 @@ const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
 };
 
 export function OfficerDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -40,7 +51,7 @@ export function OfficerDashboard() {
     if (!user || user.role !== 'officer') return;
 
     if (!user.officerRecordId) {
-      setLoadError('Officer profile not linked. Ask admin to add you in the officers table.');
+      setLoadError(t('officer.profileNotLinked'));
       setComplaints([]);
       return;
     }
@@ -90,13 +101,13 @@ export function OfficerDashboard() {
       user.id,
       {
         status: next,
-        note: note.trim() || `Status updated to ${next}.`,
+        note: note.trim() || t('officer.updateNote', { status: t(statusFilterKeys[next]) }),
       },
     );
     setUpdating(false);
 
     if (error || !updated) {
-      alert(error || 'Failed to update complaint');
+      alert(error || t('officer.updateFailed'));
       return;
     }
 
@@ -105,17 +116,17 @@ export function OfficerDashboard() {
     setNote('');
   }
 
-  if (!complaints) return <DashboardLayout><LoadingOverlay label="Loading assigned complaints..." /></DashboardLayout>;
+  if (!complaints) return <DashboardLayout><LoadingOverlay label={t('officer.loadingAssigned')} /></DashboardLayout>;
 
-  const deptName = user?.role === 'officer' ? user.departmentName ?? 'Department' : '';
+  const deptName = user?.role === 'officer' ? user.departmentName ?? t('roles.department') : '';
   const next = selected ? nextStatus[selected.status] ?? null : null;
 
   return (
     <DashboardLayout>
       <div className="mb-6 animate-fade-in">
-        <h1 className="text-2xl font-extrabold text-navy-900">Officer Dashboard</h1>
+        <h1 className="text-2xl font-extrabold text-navy-900">{t('dashboard.officerDashboard')}</h1>
         <p className="text-slate-500 mt-1">
-          {deptName} · {user?.role === 'officer' ? user.ward : ''} · Badge {user?.role === 'officer' ? user.badge : ''}
+          {deptName} · {user?.role === 'officer' ? user.ward : ''} · {t('roles.badge')} {user?.role === 'officer' ? user.badge : ''}
         </p>
       </div>
 
@@ -127,24 +138,24 @@ export function OfficerDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <StatCard icon={ClipboardList} label="Total Assigned" value={stats.total} color="bg-gov-50 text-gov-600" />
-        <StatCard icon={Clock} label="Pending" value={stats.assigned} color="bg-blue-50 text-blue-600" />
-        <StatCard icon={Clock} label="In Progress" value={stats.inProgress} color="bg-saffron-50 text-saffron-600" />
-        <StatCard icon={CheckCircle2} label="Resolved" value={stats.resolved} color="bg-emerald-50 text-emerald-600" />
-        <StatCard icon={AlertTriangle} label="Critical" value={stats.critical} color="bg-red-50 text-red-600" />
+        <StatCard icon={ClipboardList} label={t('dashboard.totalAssigned')} value={stats.total} color="bg-gov-50 text-gov-600" />
+        <StatCard icon={Clock} label={t('dashboard.stats.pending')} value={stats.assigned} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={Clock} label={t('dashboard.stats.inProgress')} value={stats.inProgress} color="bg-saffron-50 text-saffron-600" />
+        <StatCard icon={CheckCircle2} label={t('dashboard.stats.resolved')} value={stats.resolved} color="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={AlertTriangle} label={t('dashboard.stats.critical')} value={stats.critical} color="bg-red-50 text-red-600" />
       </div>
 
       {/* Complaints */}
       <div className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-bold text-navy-900">Assigned Complaints</h2>
+          <h2 className="text-lg font-bold text-navy-900">{t('officer.assignedComplaints')}</h2>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
+                placeholder={t('common.search')}
                 className="input pl-9 py-2 text-sm w-full sm:w-48"
               />
             </div>
@@ -157,7 +168,7 @@ export function OfficerDashboard() {
                     filter === f ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-700'
                   }`}
                 >
-                  {f}
+                  {t(statusFilterKeys[f])}
                 </button>
               ))}
             </div>
@@ -167,11 +178,11 @@ export function OfficerDashboard() {
         {filtered.length === 0 ? (
           <EmptyState
             icon={<Inbox className="h-12 w-12" />}
-            title="No complaints assigned"
+            title={t('officer.noComplaintsAssigned')}
             message={
               complaints.length === 0
-                ? 'Complaints appear here after they are auto-assigned to your officer profile in the same department.'
-                : 'You have no complaints matching the current filter.'
+                ? t('officer.autoAssignedMessage')
+                : t('officer.noFilterMatches')
             }
           />
         ) : (
@@ -186,7 +197,7 @@ export function OfficerDashboard() {
       <ComplaintDetailModal complaint={selected} onClose={() => { setSelected(null); setNote(''); }}>
         {selected && next && (
           <div className="mt-2 pt-4 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-navy-900 mb-3">Update Status</h4>
+            <h4 className="text-sm font-bold text-navy-900 mb-3">{t('officer.updateStatus')}</h4>
             <div className="flex items-center gap-2 mb-3">
               <StatusBadge status={selected.status} />
               <span className="text-slate-400 text-sm">→</span>
@@ -195,7 +206,7 @@ export function OfficerDashboard() {
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={`Add a note for status update to "${next}"...`}
+              placeholder={t('officer.addStatusNote', { status: t(statusFilterKeys[next]) })}
               rows={2}
               className="input resize-none text-sm"
             />
@@ -205,9 +216,9 @@ export function OfficerDashboard() {
               className="btn-primary w-full mt-3"
             >
               {updating ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Updating...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> {t('officer.updating')}</>
               ) : (
-                <><Send className="h-4 w-4" /> Mark as {next}</>
+                <><Send className="h-4 w-4" /> {t('officer.markAs', { status: t(statusFilterKeys[next]) })}</>
               )}
             </button>
           </div>
@@ -215,7 +226,7 @@ export function OfficerDashboard() {
         {selected && !next && (
           <div className="mt-2 pt-4 border-t border-slate-100">
             <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
-              <CheckCircle2 className="h-5 w-5" /> This complaint has been resolved.
+              <CheckCircle2 className="h-5 w-5" /> {t('officer.resolvedMessage')}
             </div>
           </div>
         )}

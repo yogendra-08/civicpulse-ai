@@ -1,26 +1,44 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+const statusKeys: Record<string, string> = {
+  Submitted: 'complaints.status.submitted',
+  Assigned: 'complaints.status.assigned',
+  'In Progress': 'complaints.status.inProgress',
+  Resolved: 'complaints.status.resolved',
+  Closed: 'complaints.status.closed',
+};
+
+const severityKeys: Record<string, string> = {
+  Low: 'complaints.low',
+  Medium: 'complaints.medium',
+  High: 'complaints.high',
+  Critical: 'complaints.severity.critical',
+};
 
 export function Badge({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <span className={`badge ${className}`}>{children}</span>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     Assigned: 'bg-blue-100 text-blue-700',
     'In Progress': 'bg-saffron-100 text-saffron-700',
     Resolved: 'bg-emerald-100 text-emerald-700',
   };
-  return <span className={`badge ${map[status] ?? 'bg-slate-100 text-slate-700'}`}>{status}</span>;
+  return <span className={`badge ${map[status] ?? 'bg-slate-100 text-slate-700'}`}>{t(statusKeys[status] ?? status)}</span>;
 }
 
 export function SeverityBadge({ severity }: { severity: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     Low: 'bg-emerald-100 text-emerald-700',
     Medium: 'bg-amber-100 text-amber-700',
     High: 'bg-orange-100 text-orange-700',
     Critical: 'bg-red-100 text-red-700',
   };
-  return <span className={`badge ${map[severity] ?? 'bg-slate-100 text-slate-700'}`}>{severity}</span>;
+  return <span className={`badge ${map[severity] ?? 'bg-slate-100 text-slate-700'}`}>{t(severityKeys[severity] ?? severity)}</span>;
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -77,11 +95,12 @@ export function Spinner({ className = '' }: { className?: string }) {
   );
 }
 
-export function LoadingOverlay({ label = 'Loading...' }: { label?: string }) {
+export function LoadingOverlay({ label = '' }: { label?: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <Spinner className="h-8 w-8 text-gov-500" />
-      <p className="mt-3 text-sm text-slate-500">{label}</p>
+      <p className="mt-3 text-sm text-slate-500">{label || t('common.loading')}</p>
     </div>
   );
 }

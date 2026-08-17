@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   BarChart3,
@@ -17,36 +18,35 @@ import {
   Headphones,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-
-const stats = [
-  { label: 'AI-Powered Routing', value: 'Automatic', icon: Cpu, color: 'text-gov-600', bg: 'bg-gov-50' },
-  { label: 'Real-Time Tracking', value: 'Live Updates', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { label: 'Mobile Friendly', value: 'Any Device', icon: Smartphone, color: 'text-saffron-600', bg: 'bg-saffron-50' },
-  { label: 'Secure & Private', value: 'Protected', icon: ShieldCheck, color: 'text-violet-600', bg: 'bg-violet-50' },
-];
-
-const workflow = [
-  { step: '01', title: 'Citizen Reports', desc: 'Citizens file complaints with photos and location details through the portal.', icon: FileText, color: 'bg-gov-600' },
-  { step: '02', title: 'AI Analysis', desc: 'AI engine detects category, severity, and auto-assigns the correct department.', icon: Cpu, color: 'bg-saffron-500' },
-  { step: '03', title: 'Officer Action', desc: 'Field officers receive assignments, inspect sites, and update progress in real time.', icon: ClipboardList, color: 'bg-navy-700' },
-  { step: '04', title: 'Track & Resolve', desc: 'Citizens track status live; admins monitor performance with analytics dashboards.', icon: BarChart3, color: 'bg-emerald-600' },
-];
-
-const citizenBenefits = [
-  { title: 'Report in Minutes', desc: 'File a complaint with a photo and location — no paperwork, no office visits.', icon: Zap },
-  { title: 'AI-Powered Routing', desc: 'Your complaint is automatically categorized and sent to the right department.', icon: Cpu },
-  { title: 'Live Status Tracking', desc: 'Track progress from submission to resolution with real-time status updates.', icon: TrendingUp },
-  { title: 'Transparent Process', desc: 'See who is handling your complaint and the full history of actions taken.', icon: ShieldCheck },
-];
-
-const municipalBenefits = [
-  { title: 'Intelligent Triage', desc: 'AI prioritizes critical issues like school-zone hazards automatically.', icon: Gauge },
-  { title: 'Department Analytics', desc: 'Measure resolution times, officer performance, and ward-level trends.', icon: BarChart3 },
-  { title: 'Citizen Satisfaction', desc: 'Build trust with transparent, trackable, and responsive grievance handling.', icon: Award },
-  { title: 'Resource Optimization', desc: 'Assign field crews efficiently based on severity and workload data.', icon: Building2 },
-];
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export function LandingPage() {
+  const { t } = useTranslation();
+  const stats = [
+    { label: t('landing.stats.aiPoweredRouting'), value: t('landing.stats.automatic'), icon: Cpu, color: 'text-gov-600', bg: 'bg-gov-50' },
+    { label: t('landing.stats.realTimeTracking'), value: t('landing.stats.liveUpdates'), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: t('landing.stats.mobileFriendly'), value: t('landing.stats.anyDevice'), icon: Smartphone, color: 'text-saffron-600', bg: 'bg-saffron-50' },
+    { label: t('landing.stats.securePrivate'), value: t('landing.stats.protected'), icon: ShieldCheck, color: 'text-violet-600', bg: 'bg-violet-50' },
+  ];
+  const workflow = [
+    { step: t('landing.workflow.step1'), title: t('landing.workflow.citizenReports'), desc: t('landing.workflow.citizenReportsDesc'), icon: FileText, color: 'bg-gov-600' },
+    { step: t('landing.workflow.step2'), title: t('landing.workflow.aiAnalysis'), desc: t('landing.workflow.aiAnalysisDesc'), icon: Cpu, color: 'bg-saffron-500' },
+    { step: t('landing.workflow.step3'), title: t('landing.workflow.officerAction'), desc: t('landing.workflow.officerActionDesc'), icon: ClipboardList, color: 'bg-navy-700' },
+    { step: t('landing.workflow.step4'), title: t('landing.workflow.trackResolve'), desc: t('landing.workflow.trackResolveDesc'), icon: BarChart3, color: 'bg-emerald-600' },
+  ];
+  const citizenBenefits = [
+    { title: t('landing.citizenBenefits.reportMinutes'), desc: t('landing.citizenBenefits.reportMinutesDesc'), icon: Zap },
+    { title: t('landing.citizenBenefits.aiRouting'), desc: t('landing.citizenBenefits.aiRoutingDesc'), icon: Cpu },
+    { title: t('landing.citizenBenefits.liveTracking'), desc: t('landing.citizenBenefits.liveTrackingDesc'), icon: TrendingUp },
+    { title: t('landing.citizenBenefits.transparent'), desc: t('landing.citizenBenefits.transparentDesc'), icon: ShieldCheck },
+  ];
+  const municipalBenefits = [
+    { title: t('landing.municipalBenefits.intelligentTriage'), desc: t('landing.municipalBenefits.intelligentTriageDesc'), icon: Gauge },
+    { title: t('landing.municipalBenefits.analytics'), desc: t('landing.municipalBenefits.analyticsDesc'), icon: BarChart3 },
+    { title: t('landing.municipalBenefits.satisfaction'), desc: t('landing.municipalBenefits.satisfactionDesc'), icon: Award },
+    { title: t('landing.municipalBenefits.optimization'), desc: t('landing.municipalBenefits.optimizationDesc'), icon: Building2 },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
@@ -54,14 +54,15 @@ export function LandingPage() {
         <div className="section-container h-16 flex items-center justify-between">
           <Logo />
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-navy-700">
-            <a href="#how" className="hover:text-gov-600 transition">How It Works</a>
-            <a href="#benefits" className="hover:text-gov-600 transition">Benefits</a>
-            <a href="#stats" className="hover:text-gov-600 transition">Impact</a>
+            <a href="#how" className="hover:text-gov-600 transition">{t('navigation.howItWorks')}</a>
+            <a href="#benefits" className="hover:text-gov-600 transition">{t('navigation.benefits')}</a>
+            <a href="#stats" className="hover:text-gov-600 transition">{t('navigation.impact')}</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="btn-ghost text-sm">Sign In</Link>
+            <LanguageSwitcher />
+            <Link to="/login" className="btn-ghost text-sm">{t('navigation.signIn')}</Link>
             <Link to="/login" className="btn-primary text-sm">
-              Get Started <ArrowRight className="h-4 w-4" />
+              {t('navigation.getStarted')} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -79,29 +80,27 @@ export function LandingPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-navy-800 border border-navy-700 px-3 py-1.5 text-xs font-semibold text-saffron-300 mb-6 animate-fade-in">
               <span className="flex h-2 w-2 rounded-full bg-saffron-400 animate-pulse" />
-              Government of Springfield · Smart City Initiative
+              {t('landing.governmentBadge')}
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] text-balance animate-fade-in">
-              AI-Powered Civic Grievance
-              <span className="block text-gov-400">Management for Smart Cities</span>
+              {t('landing.heroTitleLine1')}
+              <span className="block text-gov-400">{t('landing.heroTitleLine2')}</span>
             </h1>
             <p className="mt-6 text-lg text-navy-200 max-w-2xl leading-relaxed animate-fade-in">
-              Report potholes, water leaks, garbage, and streetlight issues in minutes.
-              Our AI engine automatically categorizes, prioritizes, and routes every complaint
-              to the right department — so your city resolves problems faster.
+              {t('landing.heroDescription')}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 animate-fade-in">
               <Link to="/login" className="btn-accent text-base px-7 py-3.5">
-                Report a Complaint <ArrowRight className="h-5 w-5" />
+                {t('landing.reportComplaintBtn')} <ArrowRight className="h-5 w-5" />
               </Link>
               <Link to="/login" className="btn text-base px-7 py-3.5 bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur">
-                Officer / Admin Login
+                {t('landing.officerAdminLoginBtn')}
               </Link>
             </div>
             <div className="mt-10 flex items-center gap-6 text-sm text-navy-300">
-              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> Secure & Verified</div>
-              <div className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-gov-400" /> Mobile Friendly</div>
-              <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-saffron-400" /> 24/7 Available</div>
+              <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" /> {t('landing.secureVerified')}</div>
+              <div className="flex items-center gap-2"><Smartphone className="h-4 w-4 text-gov-400" /> {t('landing.stats.mobileFriendly')}</div>
+              <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-saffron-400" /> {t('landing.available247')}</div>
             </div>
           </div>
         </div>

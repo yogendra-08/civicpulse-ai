@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, User, Mail, Lock, Phone, MapPin, Building2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { realAuthService } from '@/services/realAuthService';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -32,31 +35,31 @@ export function RegisterPage() {
 
   const validateForm = (): boolean => {
     if (!formData.fullName.trim()) {
-      setError('Full name is required');
+      setError(t('register.errors.fullNameRequired'));
       return false;
     }
     if (!formData.email.trim()) {
-      setError('Email is required');
+      setError(t('register.errors.emailRequired'));
       return false;
     }
     if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address');
+      setError(t('register.errors.invalidEmail'));
       return false;
     }
     if (!formData.password) {
-      setError('Password is required');
+      setError(t('register.errors.passwordRequired'));
       return false;
     }
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('register.errors.passwordMinLength'));
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('register.errors.passwordMismatch'));
       return false;
     }
     if (!formData.ward) {
-      setError('Please select your ward');
+      setError(t('register.errors.wardRequired'));
       return false;
     }
     return true;
@@ -64,7 +67,7 @@ export function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -87,13 +90,12 @@ export function RegisterPage() {
       }
 
       setSuccess(true);
-      
-      // Auto-login after registration
+
       setTimeout(() => {
         navigate('/citizen');
       }, 2000);
     } catch {
-      setError('Registration failed. Please try again.');
+      setError(t('register.errors.registrationFailed'));
       setLoading(false);
     }
   };
@@ -106,9 +108,9 @@ export function RegisterPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mx-auto mb-4">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <h2 className="text-2xl font-bold text-navy-900 mb-2">Registration Successful!</h2>
-            <p className="text-slate-600 mb-4">Your account has been created successfully.</p>
-            <p className="text-sm text-slate-500">Redirecting to your dashboard...</p>
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">{t('register.successTitle')}</h2>
+            <p className="text-slate-600 mb-4">{t('register.accountCreated')}</p>
+            <p className="text-sm text-slate-500">{t('register.successMessage')}</p>
           </div>
         </div>
       </div>
@@ -118,17 +120,20 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <Link to="/login" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-navy-700 transition mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to login
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/login" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-navy-700 transition">
+            <ArrowLeft className="h-4 w-4" /> {t('register.backToLogin')}
+          </Link>
+          <LanguageSwitcher />
+        </div>
 
         <div className="card p-8">
           <div className="text-center mb-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-navy-900 text-white mx-auto mb-4">
               <User className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold text-navy-900">Create Citizen Account</h1>
-            <p className="text-slate-500 mt-2">Register to report civic issues in your area</p>
+            <h1 className="text-2xl font-bold text-navy-900">{t('register.citizenTitle')}</h1>
+            <p className="text-slate-500 mt-2">{t('register.citizenDescription')}</p>
           </div>
 
           {error && (
@@ -140,14 +145,14 @@ export function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">Full Name <span className="text-red-500">*</span></label>
+              <label className="label">{t('register.fullNameLabel')} <span className="text-red-500">*</span></label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  placeholder="Enter your full name"
+                  placeholder={t('register.fullNamePlaceholder')}
                   className="input pl-9"
                   disabled={loading}
                 />
@@ -155,7 +160,7 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className="label">Email Address <span className="text-red-500">*</span></label>
+              <label className="label">{t('register.emailLabel')} <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -163,7 +168,7 @@ export function RegisterPage() {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="your.email@example.com"
+                  placeholder={t('register.emailPlaceholder')}
                   className="input pl-9"
                   disabled={loading}
                 />
@@ -172,7 +177,7 @@ export function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Password <span className="text-red-500">*</span></label>
+                <label className="label">{t('register.passwordLabel')} <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -180,14 +185,14 @@ export function RegisterPage() {
                     type="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder={t('register.passwordPlaceholder')}
                     className="input pl-9"
                     disabled={loading}
                   />
                 </div>
               </div>
               <div>
-                <label className="label">Confirm Password <span className="text-red-500">*</span></label>
+                <label className="label">{t('register.confirmPasswordLabel')} <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
@@ -195,7 +200,7 @@ export function RegisterPage() {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder={t('register.confirmPasswordPlaceholder')}
                     className="input pl-9"
                     disabled={loading}
                   />
@@ -204,7 +209,7 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className="label">Phone Number</label>
+              <label className="label">{t('register.phoneLabelSimple')}</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -212,7 +217,7 @@ export function RegisterPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+91 98765 43210"
+                  placeholder={t('register.phonePlaceholder')}
                   className="input pl-9"
                   disabled={loading}
                 />
@@ -220,7 +225,7 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className="label">Ward <span className="text-red-500">*</span></label>
+              <label className="label">{t('register.wardLabelSimple')} <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <select
@@ -230,7 +235,7 @@ export function RegisterPage() {
                   className="input pl-9"
                   disabled={loading}
                 >
-                  <option value="">Select your ward</option>
+                  <option value="">{t('register.wardPlaceholder')}</option>
                   {wards.map(ward => (
                     <option key={ward} value={ward}>{ward}</option>
                   ))}
@@ -239,14 +244,14 @@ export function RegisterPage() {
             </div>
 
             <div>
-              <label className="label">Address</label>
+              <label className="label">{t('register.addressLabel')}</label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  placeholder="Your residential address"
+                  placeholder={t('register.addressPlaceholder')}
                   className="input pl-9"
                   disabled={loading}
                 />
@@ -254,20 +259,20 @@ export function RegisterPage() {
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? t('register.creatingAccount') : t('register.createAccount')}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-500">
-            Already have an account?{' '}
+            {t('register.alreadyAccount')}{' '}
             <Link to="/login" className="text-gov-600 hover:text-gov-700 font-semibold">
-              Sign in
+              {t('register.signIn')}
             </Link>
           </div>
         </div>
 
         <div className="mt-6 text-center text-xs text-slate-400">
-          <p>By registering, you agree to the Terms of Service and Privacy Policy</p>
+          <p>{t('register.agreement')}</p>
         </div>
       </div>
     </div>

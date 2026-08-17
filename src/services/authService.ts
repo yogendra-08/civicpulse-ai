@@ -19,7 +19,7 @@ const users: Record<Role, AuthUser> = {
   officer: {
     role: 'officer',
     id: 'off-1',
-    officerRecordId: 'off-record-1',
+    officerRecordId: 'off-1',
     name: 'Suresh Kamble',
     email: 'suresh.kamble@mcgov.in',
     departmentId: 'dept-roads',

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { I18nextProvider } from 'react-i18next';
 import { AuthProvider } from '@/context/AuthContext';
 import { RequireRole } from '@/components/RequireRole';
 import { LandingPage } from '@/pages/LandingPage';
@@ -12,13 +13,15 @@ import { OfficerDashboard } from '@/pages/OfficerDashboard';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { AdminAnalytics } from '@/pages/AdminAnalytics';
 import { ChatAgent } from '@/components/ChatAgent';
+import i18n from '@/i18n/i18n';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <ChatAgent />
-        <Routes>
+    <I18nextProvider i18n={i18n}>
+      <AuthProvider>
+        <BrowserRouter>
+          <ChatAgent />
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -82,6 +85,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </I18nextProvider>
   );
 }
 

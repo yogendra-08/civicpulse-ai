@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   Eye,
@@ -10,8 +11,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Logo } from '@/components/Logo';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -24,8 +27,7 @@ export function LoginPage() {
 
     try {
       const user = await login(email, password);
-      
-      // Redirect based on user role
+
       switch (user.role) {
         case 'citizen':
           navigate('/citizen');
@@ -44,11 +46,10 @@ export function LoginPage() {
 
   async function handleForgotPassword() {
     if (!email) {
-      alert('Please enter your email address first');
+      alert(t('login.forgotEmailFirst'));
       return;
     }
-    // Password reset functionality would be implemented here
-    alert('Password reset link will be sent to your email');
+    alert(t('login.resetLinkSent'));
   }
 
   return (
@@ -59,16 +60,15 @@ export function LoginPage() {
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-saffron-500/10 rounded-full blur-[100px]" />
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-2 text-navy-300 hover:text-white transition text-sm mb-12">
-            <ArrowLeft className="h-4 w-4" /> Back to home
+            <ArrowLeft className="h-4 w-4" /> {t('navigation.backToHome')}
           </Link>
           <Logo />
           <div className="mt-12 max-w-md">
             <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight">
-              Sign in to the<br />
-              <span className="text-gov-400">Civic Grievance Portal</span>
+              {t('login.title')}
             </h1>
             <p className="mt-4 text-navy-200 text-lg leading-relaxed">
-              Access your dashboard to report complaints, track progress, and manage civic issues efficiently.
+              {t('login.description')}
             </p>
           </div>
         </div>
@@ -77,9 +77,12 @@ export function LoginPage() {
       {/* Right panel */}
       <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-slate-50">
         <div className="w-full max-w-md">
+          <div className="flex justify-end mb-4">
+            <LanguageSwitcher />
+          </div>
           <form onSubmit={handleSubmit} className="animate-fade-in">
-            <h2 className="text-2xl font-extrabold text-navy-900 mb-1">Sign In</h2>
-            <p className="text-slate-500 mb-6">Enter your credentials to access your account</p>
+            <h2 className="text-2xl font-extrabold text-navy-900 mb-1">{t('login.signIn')}</h2>
+            <p className="text-slate-500 mb-6">{t('login.enterCredentials')}</p>
 
             {error && (
               <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 flex items-start gap-2.5 animate-fade-in-fast">
@@ -90,28 +93,28 @@ export function LoginPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="label">Email Address</label>
+                <label className="label">{t('login.emailLabel')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); clearError(); }}
-                    placeholder="your.email@example.com"
+                    placeholder={t('login.emailPlaceholder')}
                     className="input pl-10"
                     autoComplete="email"
                   />
                 </div>
               </div>
               <div>
-                <label className="label">Password</label>
+                <label className="label">{t('login.passwordLabel')}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); clearError(); }}
-                    placeholder="Enter your password"
+                    placeholder={t('login.passwordPlaceholder')}
                     className="input pl-10 pr-10"
                     autoComplete="current-password"
                   />
@@ -132,18 +135,18 @@ export function LoginPage() {
                 onClick={handleForgotPassword}
                 className="text-sm text-gov-600 hover:text-gov-700 font-medium"
               >
-                Forgot password?
+                {t('login.forgotPassword')}
               </button>
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full mt-6 py-3 text-base">
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('login.signingIn') : t('login.signIn')}
             </button>
 
             <div className="mt-6 text-center text-sm text-slate-500">
-              Don't have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link to="/register" className="text-gov-600 hover:text-gov-700 font-semibold">
-                Register as Citizen
+                {t('login.registerCitizen')}
               </Link>
             </div>
           </form>

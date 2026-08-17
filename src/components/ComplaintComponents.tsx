@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Calendar,
   ChevronRight,
@@ -21,6 +22,15 @@ import type { Complaint, ComplaintCategory } from '@/types';
 import { departments, officers } from '@/data/mockData';
 import { SeverityBadge, StatusBadge } from '@/components/ui';
 
+const categoryKeys: Record<ComplaintCategory, string> = {
+  'Road Issue': 'complaints.categoryLabels.roadIssue',
+  'Water Leakage': 'complaints.categoryLabels.waterLeakage',
+  Sanitation: 'complaints.categoryLabels.sanitation',
+  Electrical: 'complaints.categoryLabels.electrical',
+  Drainage: 'complaints.categoryLabels.drainage',
+  'Public Sanitation': 'complaints.categoryLabels.publicSanitation',
+};
+
 const iconMap: Record<ComplaintCategory, typeof Construction> = {
   'Road Issue': Construction,
   'Water Leakage': Droplets,
@@ -39,23 +49,23 @@ const categoryBg: Record<ComplaintCategory, string> = {
   'Public Sanitation': 'bg-teal-50 text-teal-600',
 };
 
-function deptName(id?: string, fallback?: string) {
-  return fallback || departments.find((d) => d.id === id)?.name || 'Unknown';
+function deptName(id: string | undefined, fallback: string | undefined, unknown: string) {
+  return fallback || departments.find((d) => d.id === id)?.name || unknown;
 }
-function officerName(id?: string, fallback?: string) {
-  return fallback || officers.find((o) => o.id === id)?.name || 'Unassigned';
+function officerName(id: string | undefined, fallback: string | undefined, unassigned: string) {
+  return fallback || officers.find((o) => o.id === id)?.name || unassigned;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', {
+function formatDate(iso: string, language: string) {
+  return new Date(iso).toLocaleDateString(language === 'en' ? 'en-IN' : language, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('en-IN', {
+function formatDateTime(iso: string, language: string) {
+  return new Date(iso).toLocaleString(language === 'en' ? 'en-IN' : language, {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -70,6 +80,7 @@ export function ComplaintCard({
   complaint: Complaint;
   onOpen: (c: Complaint) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const Icon = iconMap[complaint.category];
   return (
     <button
@@ -95,12 +106,14 @@ export function ComplaintCard({
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {formatDate(complaint.createdAt)}
+              {formatDate(complaint.createdAt, i18n.language)}
             </span>
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
             <StatusBadge status={complaint.status} />
-            <span className="text-xs text-slate-400 truncate">{complaint.departmentName ?? deptName(complaint.departmentId, complaint.departmentName)}</span>
+            <span className="text-xs text-slate-400 truncate">
+              {complaint.departmentName ?? deptName(complaint.departmentId, complaint.departmentName, t('admin.unknown'))}
+            </span>
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-navy-400 group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -118,6 +131,7 @@ export function ComplaintDetailModal({
   onClose: () => void;
   children?: React.ReactNode;
 }) {
+  const { t: translate, i18n } = useTranslation();
   const [imgError, setImgError] = useState(false);
   if (!complaint) return null;
   const Icon = iconMap[complaint.category];
@@ -164,15 +178,15 @@ export function ComplaintDetailModal({
 
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
-            <MetaItem icon={MapPin} label="Location" value={complaint.location} />
-            <MetaItem icon={Building} label="Department" value={deptName(complaint.departmentId, complaint.departmentName)} />
-            <MetaItem icon={User} label="Assigned Officer" value={officerName(complaint.officerId, complaint.officerName)} />
-            <MetaItem icon={Calendar} label="Filed On" value={formatDate(complaint.createdAt)} />
+            <MetaItem icon={MapPin} label={translate('complaints.location')} value={complaint.location} />
+            <MetaItem icon={Building} label={translate('complaints.details.department')} value={deptName(complaint.departmentId, complaint.departmentName, translate('admin.unknown'))} />
+            <MetaItem icon={User} label={translate('complaints.details.assignedTo')} value={officerName(complaint.officerId, complaint.officerName, translate('officer.noAssignments'))} />
+            <MetaItem icon={Calendar} label={translate('complaints.details.filedOn')} value={formatDate(complaint.createdAt, i18n.language)} />
           </div>
 
           {/* Description */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Description</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">{translate('complaints.description')}</h4>
             <p className="text-sm text-navy-700 leading-relaxed bg-slate-50 rounded-lg p-3 border border-slate-100">
               {complaint.description}
             </p>
@@ -186,18 +200,18 @@ export function ComplaintDetailModal({
                   <Cpu className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-navy-900">AI Analysis</div>
+                  <div className="text-sm font-bold text-navy-900">{translate('complaints.details.aiAnalysis')}</div>
                   <div className="text-[11px] text-gov-600 font-medium">
-                    {Math.round(aiInfo.confidence * 100)}% confidence
+                    {translate('complaints.details.confidence', { value: Math.round(aiInfo.confidence * 100) })}
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <MetaItem compact label="Category" value={aiInfo.category} />
-                <MetaItem compact label="Severity" value={aiInfo.severity} />
+                <MetaItem compact label={translate('complaints.category')} value={translate(categoryKeys[aiInfo.category])} />
+                <MetaItem compact label={translate('complaints.severityLabel')} value={<SeverityBadge severity={aiInfo.severity} />} />
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">AI Summary</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{translate('complaints.details.aiSummary')}</div>
                 <p className="text-sm text-navy-700 leading-relaxed">{aiInfo.summary}</p>
               </div>
             </div>
@@ -205,25 +219,25 @@ export function ComplaintDetailModal({
 
           {/* Timeline */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Status Timeline</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{translate('complaints.details.statusTimeline')}</h4>
             <div className="space-y-0">
-              {timeline.map((t, i) => {
+              {timeline.map((item, i) => {
                 const isLast = i === timeline.length - 1;
                 return (
-                  <div key={t.id} className="flex gap-3">
+                  <div key={item.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`flex h-7 w-7 items-center justify-center rounded-full shrink-0 ${t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : t.status === 'In Progress' ? 'bg-saffron-100 text-saffron-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {t.status === 'Resolved' ? <CheckCircle2 className="h-4 w-4" /> : t.status === 'In Progress' ? <Clock className="h-4 w-4" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-full shrink-0 ${item.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : item.status === 'In Progress' ? 'bg-saffron-100 text-saffron-600' : 'bg-blue-100 text-blue-600'}`}>
+                        {item.status === 'Resolved' ? <CheckCircle2 className="h-4 w-4" /> : item.status === 'In Progress' ? <Clock className="h-4 w-4" /> : <AlertTriangle className="h-3.5 w-3.5" />}
                       </div>
                       {!isLast && <div className="w-0.5 flex-1 bg-slate-200 my-1" />}
                     </div>
                     <div className="pb-4 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-navy-800">{t.status}</span>
-                        <span className="text-xs text-slate-400">· {formatDateTime(t.at)}</span>
+                        <StatusBadge status={item.status} />
+                        <span className="text-xs text-slate-400">· {formatDateTime(item.at, i18n.language)}</span>
                       </div>
-                      <p className="text-sm text-slate-600 mt-0.5">{t.note}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">by {t.by}</p>
+                      <p className="text-sm text-slate-600 mt-0.5">{item.note}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{translate('complaints.details.by', { name: item.by })}</p>
                     </div>
                   </div>
                 );
@@ -247,7 +261,7 @@ function MetaItem({
 }: {
   icon?: typeof MapPin;
   label: string;
-  value: string;
+  value: React.ReactNode;
   compact?: boolean;
 }) {
   return (

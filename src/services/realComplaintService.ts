@@ -173,6 +173,13 @@ const calculateExpectedResolution = (category: ComplaintCategory, createdAtISO: 
   };
 };
 
+const generateComplaintNumber = () => {
+  const year = new Date().getFullYear();
+  const stamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 9000 + 1000).toString();
+  return `CP-${year}-${stamp}${random}`;
+};
+
 const normalizeComplaintTiming = async (row: DbComplaintRow): Promise<DbComplaintRow> => {
   if (!row.expected_resolution_at) return row;
   const currentStatus = fromDbStatus(row.status);
@@ -272,6 +279,7 @@ export const realComplaintService = {
       let insertError: any = null;
       const maxAttempts = 4;
       const fullPayload = {
+        complaint_number: generateComplaintNumber(),
         citizen_id: userId,
         title: data.title,
         description: data.description,
@@ -292,6 +300,7 @@ export const realComplaintService = {
         resolution_window: timing.resolutionWindow,
       };
       const fallbackPayload = {
+        complaint_number: generateComplaintNumber(),
         citizen_id: userId,
         title: data.title,
         description: data.description,
@@ -310,9 +319,10 @@ export const realComplaintService = {
         longitude: data.longitude,
       };
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const payload = attempt === 1 ? fullPayload : { ...fullPayload, complaint_number: generateComplaintNumber() };
         const res = await supabase
           .from('complaints')
-          .insert(fullPayload)
+          .insert(payload)
           .select()
           .single();
 
@@ -323,9 +333,10 @@ export const realComplaintService = {
 
         const msg = (insertError && insertError.message) || '';
         if (looksLikeMissingResolutionColumns(msg)) {
+          const fallbackWithNumber = { ...fallbackPayload, complaint_number: generateComplaintNumber() };
           const fallback = await supabase
             .from('complaints')
-            .insert(fallbackPayload)
+            .insert(fallbackWithNumber)
             .select()
             .single();
           complaint = fallback.data as any;

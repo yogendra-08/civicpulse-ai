@@ -20,14 +20,29 @@ const reservedAnswers: Array<{ patterns: string[]; answer: string }> = [
       'Use the Login and Register pages to access the portal. Citizens can create an account, while officers and admins sign in with their assigned credentials.',
   },
   {
+    patterns: ['forgot password', 'reset password', 'recover password'],
+    answer:
+      'Open the login page, enter your email, and use the Forgot password option. The app is set up for password reset support through the account flow.',
+  },
+  {
     patterns: ['complaint', 'report', 'file', 'submit'],
     answer:
       'Citizens can report a complaint from the Report Complaint page. Add the issue details, location, ward, and an optional photo, then submit for AI routing.',
   },
   {
+    patterns: ['photo', 'image', 'upload', 'camera'],
+    answer:
+      'When reporting a complaint, you can attach an image to help explain the issue. The app accepts a photo from your device and previews it before submission.',
+  },
+  {
+    patterns: ['location', 'ward', 'landmark', 'address'],
+    answer:
+      'Complaint reports work best when you include a clear location, ward, and nearby landmark. That helps routing and follow-up during resolution.',
+  },
+  {
     patterns: ['track', 'status', 'timeline', 'follow up'],
     answer:
-      'Complaint progress is visible in the citizen dashboard and the complaint detail modal. You can see status updates, timelines, and resolution notes there.',
+      'Complaint progress is visible in the citizen dashboard and the complaint detail modal. You can see status updates, timelines, and resolution notes there, along with the complaint number.',
   },
   {
     patterns: ['officer', 'assigned', 'workload', 'update status'],
@@ -35,14 +50,49 @@ const reservedAnswers: Array<{ patterns: string[]; answer: string }> = [
       'Officers use the Officer Dashboard to view assigned complaints and move them through Assigned, In Progress, Resolved, and Closed states.',
   },
   {
+    patterns: ['citizen dashboard', 'my complaints', 'dashboard'],
+    answer:
+      'The citizen dashboard shows your complaint list, quick stats, search and filters, and a shortcut to report a new complaint.',
+  },
+  {
+    patterns: ['officer dashboard', 'assigned complaints', 'field officer'],
+    answer:
+      'The officer dashboard lists complaints assigned to that officer record, with filters, complaint details, and the next status action when available.',
+  },
+  {
     patterns: ['admin', 'analytics', 'dashboard', 'performance'],
     answer:
       'Admins can view the Admin Dashboard and Analytics pages for department performance, ward trends, severity breakdowns, and complaint statistics.',
   },
   {
+    patterns: ['users', 'user management', 'manage users'],
+    answer:
+      'Admins can open the User Management page to review citizens, officers, and admin accounts. It is intended for oversight and support tasks.',
+  },
+  {
+    patterns: ['profile', 'change name', 'phone', 'address'],
+    answer:
+      'The Profile page lets citizens update their name, phone number, and address. Ward and email are kept fixed to preserve account records.',
+  },
+  {
+    patterns: ['how to use', 'help', 'what can i do', 'features'],
+    answer:
+      'CivicPulse lets citizens report issues, track status, and update profile details; officers manage assigned complaints; admins review analytics and users.',
+  },
+  {
+    patterns: ['support', 'contact', 'helpline', 'contact us'],
+    answer:
+      'The landing page includes the municipal helpline and support details. If you need operational help, start with the support information shown there.',
+  },
+  {
     patterns: ['gemini', 'ai', 'classification', 'route'],
     answer:
       "The app uses Gemini for conversational help. Complaint classification itself is handled by the app's complaint AI workflow, which can also fall back to local rules.",
+  },
+  {
+    patterns: ['why', 'not working', 'error', 'failed', 'problem'],
+    answer:
+      'If something is not working, first check that you are signed in with the right role and that your complaint data is complete. If the issue persists, the app may be waiting on Supabase or Gemini configuration.',
   },
 ];
 

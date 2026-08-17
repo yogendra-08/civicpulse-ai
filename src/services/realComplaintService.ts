@@ -191,6 +191,13 @@ const normalizeComplaintTiming = async (row: DbComplaintRow): Promise<DbComplain
   return (data as DbComplaintRow) ?? { ...row, status: 'overdue' };
 };
 
+const looksLikeMissingResolutionColumns = (message?: string) =>
+  !!message && (
+    message.includes("expected_resolution_at") ||
+    message.includes("resolution_window") ||
+    message.includes("schema cache")
+  );
+
 export function mapDbComplaint(row: DbComplaintRow): Complaint {
   return {
     id: row.id,
@@ -264,29 +271,48 @@ export const realComplaintService = {
       let complaint: any = null;
       let insertError: any = null;
       const maxAttempts = 4;
+      const fullPayload = {
+        citizen_id: userId,
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        ward: data.ward,
+        category: dbCategory,
+        severity: dbSeverity,
+        status: 'submitted',
+        department_id: department?.id,
+        image_url: data.imageUrl,
+        ai_category: dbCategory,
+        ai_severity: dbSeverity,
+        ai_confidence: aiAnalysis.confidence,
+        ai_summary: aiAnalysis.summary,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        expected_resolution_at: timing.expectedResolutionAt,
+        resolution_window: timing.resolutionWindow,
+      };
+      const fallbackPayload = {
+        citizen_id: userId,
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        ward: data.ward,
+        category: dbCategory,
+        severity: dbSeverity,
+        status: 'submitted',
+        department_id: department?.id,
+        image_url: data.imageUrl,
+        ai_category: dbCategory,
+        ai_severity: dbSeverity,
+        ai_confidence: aiAnalysis.confidence,
+        ai_summary: aiAnalysis.summary,
+        latitude: data.latitude,
+        longitude: data.longitude,
+      };
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const res = await supabase
           .from('complaints')
-          .insert({
-            citizen_id: userId,
-            title: data.title,
-            description: data.description,
-            location: data.location,
-            ward: data.ward,
-            category: dbCategory,
-            severity: dbSeverity,
-            status: 'submitted',
-            department_id: department?.id,
-            image_url: data.imageUrl,
-            ai_category: dbCategory,
-            ai_severity: dbSeverity,
-            ai_confidence: aiAnalysis.confidence,
-            ai_summary: aiAnalysis.summary,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            expected_resolution_at: timing.expectedResolutionAt,
-            resolution_window: timing.resolutionWindow,
-          })
+          .insert(fullPayload)
           .select()
           .single();
 
@@ -296,6 +322,16 @@ export const realComplaintService = {
         if (!insertError) break;
 
         const msg = (insertError && insertError.message) || '';
+        if (looksLikeMissingResolutionColumns(msg)) {
+          const fallback = await supabase
+            .from('complaints')
+            .insert(fallbackPayload)
+            .select()
+            .single();
+          complaint = fallback.data as any;
+          insertError = fallback.error;
+          if (!insertError) break;
+        }
         // Postgres unique violation code 23505, or specific complaint_number key
         if (msg.includes('complaints_complaint_number_key') || insertError.code === '23505') {
           if (attempt < maxAttempts) {
@@ -358,16 +394,27 @@ export const realComplaintService = {
   // Get complaint by ID
   async getComplaintById(complaintId: string): Promise<{ complaint: Complaint | null; error: string | null }> {
     try {
-      const { data: complaint, error } = await supabase
-        .from('complaints')
-        .select(`
+      const baseSelect = `
           *,
           departments (*),
           officers (*),
           citizen_profiles (full_name, phone)
-        `)
+        `;
+      let { data: complaint, error } = await supabase
+        .from('complaints')
+        .select(baseSelect)
         .eq('id', complaintId)
         .single();
+
+      if (error && looksLikeMissingResolutionColumns(error.message)) {
+        const retry = await supabase
+          .from('complaints')
+          .select('*, departments (*), officers (*), citizen_profiles (full_name, phone)')
+          .eq('id', complaintId)
+          .single();
+        complaint = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return { complaint: null, error: error.message };
@@ -406,7 +453,7 @@ export const realComplaintService = {
   // Get citizen's complaints
   async getCitizenComplaints(userId: string, limit = 20, offset = 0): Promise<{ complaints: Complaint[]; error: string | null }> {
     try {
-      const { data: complaints, error } = await supabase
+      let { data: complaints, error } = await supabase
         .from('complaints')
         .select(`
           *,
@@ -415,6 +462,17 @@ export const realComplaintService = {
         .eq('citizen_id', userId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
+
+      if (error && looksLikeMissingResolutionColumns(error.message)) {
+        const retry = await supabase
+          .from('complaints')
+          .select('*, departments (id, name)')
+          .eq('citizen_id', userId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        complaints = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return { complaints: [], error: error.message };
@@ -448,8 +506,22 @@ export const realComplaintService = {
         query = query.eq('status', toDbStatus(status) || status);
       }
 
-      const { data: complaints, error } = await query
+      let { data: complaints, error } = await query
         .order('created_at', { ascending: false });
+
+      if (error && looksLikeMissingResolutionColumns(error.message)) {
+        const retryQuery = supabase
+          .from('complaints')
+          .select(`
+            *,
+            departments (id, name),
+            citizen_profiles (full_name, phone)
+          `)
+          .eq('assigned_officer_id', officerRecordId);
+        const retry = await retryQuery.order('created_at', { ascending: false });
+        complaints = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return { complaints: [], error: error.message };
@@ -564,9 +636,24 @@ export const realComplaintService = {
       const limit = filters?.limit || 50;
       const offset = filters?.offset || 0;
 
-      const { data: complaints, error } = await query
+      let { data: complaints, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
+
+      if (error && looksLikeMissingResolutionColumns(error.message)) {
+        const retry = await supabase
+          .from('complaints')
+          .select(`
+            *,
+            departments (*),
+            officers (*),
+            citizen_profiles (full_name, phone)
+          `)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+        complaints = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return { complaints: [], error: error.message };

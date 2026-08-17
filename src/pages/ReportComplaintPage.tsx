@@ -201,6 +201,14 @@ export function ReportComplaintPage() {
                   <FilePlus className="h-4 w-4" /> {t('complaints.reportAnother')}
                 </button>
               </div>
+              <div className="mt-6 w-full rounded-xl border border-slate-200 bg-white p-4 text-left">
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {t('complaints.details.expectedResolution')}
+                </div>
+                <div className="mt-1 text-sm font-medium text-navy-800">
+                  {analysis.category === 'Sanitation' ? '1-2 days' : analysis.category === 'Road Issue' ? '3-5 days' : analysis.category === 'Water Leakage' ? '2-3 days' : '2-4 days'}
+                </div>
+              </div>
             </div>
           ) : (
             <>

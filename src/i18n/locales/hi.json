@@ -296,6 +296,9 @@
       "statusTimeline": "स्थिति समयरेखा",
       "by": "{{name}} द्वारा"
     },
+    "voteAdd": "इस शिकायत को अपवोट करें",
+    "voteRemove": "अपवोट हटाएं",
+    "voteCount": "{{count}} अपवोट",
     "filters": {
       "all": "All",
       "pending": "Pending",

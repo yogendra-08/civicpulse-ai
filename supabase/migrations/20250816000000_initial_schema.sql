@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Types
 -- ---------------------------------------------------------------------------
 CREATE TYPE user_role AS ENUM ('citizen', 'officer', 'admin');
-CREATE TYPE complaint_status AS ENUM ('submitted', 'assigned', 'in_progress', 'resolved', 'closed');
+CREATE TYPE complaint_status AS ENUM ('submitted', 'assigned', 'in_progress', 'resolved', 'closed', 'overdue');
 CREATE TYPE complaint_severity AS ENUM ('low', 'medium', 'high', 'critical');
 CREATE TYPE complaint_category AS ENUM ('road_issue', 'water_leakage', 'sanitation', 'electrical', 'drainage', 'public_sanitation');
 CREATE TYPE notification_type AS ENUM ('status_update', 'assignment', 'alert', 'system');
@@ -84,6 +84,8 @@ CREATE TABLE complaints (
     ai_severity complaint_severity,
     ai_confidence DECIMAL(3, 2),
     ai_summary TEXT,
+    expected_resolution_at TIMESTAMPTZ,
+    resolution_window VARCHAR(50),
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
     created_at TIMESTAMPTZ DEFAULT NOW(),

@@ -18,6 +18,21 @@ export interface UpdateComplaintData {
   resolutionDetails?: string;
 }
 
+type ResolutionPlan = {
+  windowLabel: string;
+  minDays: number;
+  maxDays: number;
+};
+
+const categoryResolutionPlans: Record<ComplaintCategory, ResolutionPlan> = {
+  'Road Issue': { windowLabel: '3-5 days', minDays: 3, maxDays: 5 },
+  'Water Leakage': { windowLabel: '2-3 days', minDays: 2, maxDays: 3 },
+  Sanitation: { windowLabel: '1-2 days', minDays: 1, maxDays: 2 },
+  Electrical: { windowLabel: '2-4 days', minDays: 2, maxDays: 4 },
+  Drainage: { windowLabel: '3-6 days', minDays: 3, maxDays: 6 },
+  'Public Sanitation': { windowLabel: '1-3 days', minDays: 1, maxDays: 3 },
+};
+
 const toDbStatus = (status?: ComplaintStatus): string | undefined => {
   if (!status) return undefined;
   const map: Record<ComplaintStatus, string> = {
@@ -26,6 +41,7 @@ const toDbStatus = (status?: ComplaintStatus): string | undefined => {
     'In Progress': 'in_progress',
     Resolved: 'resolved',
     Closed: 'closed',
+    Overdue: 'overdue',
   };
   return map[status];
 };
@@ -61,6 +77,7 @@ const fromDbStatus = (status: string): ComplaintStatus => {
     in_progress: 'In Progress',
     resolved: 'Resolved',
     closed: 'Closed',
+    overdue: 'Overdue',
   };
   return map[status] ?? 'Submitted';
 };
@@ -133,6 +150,8 @@ type DbComplaintRow = {
   created_at: string;
   updated_at?: string;
   resolved_at?: string;
+  expected_resolution_at?: string;
+  resolution_window?: string;
   ai_category?: string;
   ai_severity?: string;
   ai_confidence?: number;
@@ -140,6 +159,36 @@ type DbComplaintRow = {
   departments?: { id?: string; name?: string } | null;
   citizen_profiles?: { full_name?: string; phone?: string } | null;
   officers?: { badge_number?: string } | null;
+};
+
+const isFinalStatus = (status: ComplaintStatus) => status === 'Resolved' || status === 'Closed';
+
+const calculateExpectedResolution = (category: ComplaintCategory, createdAtISO: string) => {
+  const plan = categoryResolutionPlans[category] ?? categoryResolutionPlans.Sanitation;
+  const expected = new Date(createdAtISO);
+  expected.setDate(expected.getDate() + plan.maxDays);
+  return {
+    expectedResolutionAt: expected.toISOString(),
+    resolutionWindow: plan.windowLabel,
+  };
+};
+
+const normalizeComplaintTiming = async (row: DbComplaintRow): Promise<DbComplaintRow> => {
+  if (!row.expected_resolution_at) return row;
+  const currentStatus = fromDbStatus(row.status);
+  if (isFinalStatus(currentStatus)) return row;
+  if (new Date(row.expected_resolution_at).getTime() >= Date.now()) return row;
+
+  if (row.status === 'overdue') return row;
+
+  const { data } = await supabase
+    .from('complaints')
+    .update({ status: 'overdue', updated_at: new Date().toISOString() })
+    .eq('id', row.id)
+    .select('*')
+    .single();
+
+  return (data as DbComplaintRow) ?? { ...row, status: 'overdue' };
 };
 
 export function mapDbComplaint(row: DbComplaintRow): Complaint {
@@ -163,6 +212,8 @@ export function mapDbComplaint(row: DbComplaintRow): Complaint {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     resolvedAt: row.resolved_at,
+    expectedResolutionAt: row.expected_resolution_at,
+    resolutionWindow: row.resolution_window,
     ai: row.ai_category
       ? {
           category: fromDbCategory(row.ai_category),
@@ -197,6 +248,7 @@ export const realComplaintService = {
 
       const dbCategory = toDbCategory(aiAnalysis.category) || 'sanitation';
       const dbSeverity = toDbSeverity(aiAnalysis.severity) || 'medium';
+      const timing = calculateExpectedResolution(aiAnalysis.category, new Date().toISOString());
 
       // Get department ID from AI classification or complaint category.
       // The AI layer returns mock department ids like "dept-roads", which do not match
@@ -232,6 +284,8 @@ export const realComplaintService = {
             ai_summary: aiAnalysis.summary,
             latitude: data.latitude,
             longitude: data.longitude,
+            expected_resolution_at: timing.expectedResolutionAt,
+            resolution_window: timing.resolutionWindow,
           })
           .select()
           .single();
@@ -292,7 +346,7 @@ export const realComplaintService = {
         performed_by_role: 'citizen',
       });
 
-      return { complaint: complaint as Complaint, error: null };
+      return { complaint: mapDbComplaint(complaint as DbComplaintRow), error: null };
     } catch (error) {
       return { 
         complaint: null, 
@@ -326,11 +380,11 @@ export const realComplaintService = {
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: true });
 
-      const mappedComplaint = mapDbComplaint(complaint as DbComplaintRow);
+      const normalizedComplaint = await normalizeComplaintTiming(complaint as DbComplaintRow);
 
       return {
         complaint: {
-          ...mappedComplaint,
+          ...mapDbComplaint(normalizedComplaint),
           timeline: (timeline || []).map((t) => ({
             id: t.id,
             status: fromDbStatus(t.status),
@@ -367,7 +421,7 @@ export const realComplaintService = {
       }
 
       return {
-        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        complaints: await Promise.all((complaints || []).map(async (row) => mapDbComplaint(await normalizeComplaintTiming(row as DbComplaintRow)))),
         error: null,
       };
     } catch (error) {
@@ -402,7 +456,7 @@ export const realComplaintService = {
       }
 
       return {
-        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        complaints: await Promise.all((complaints || []).map(async (row) => mapDbComplaint(await normalizeComplaintTiming(row as DbComplaintRow)))),
         error: null,
       };
     } catch (error) {
@@ -462,7 +516,7 @@ export const realComplaintService = {
         });
       }
 
-      return { complaint: mapDbComplaint(complaint as DbComplaintRow), error: null };
+      return { complaint: mapDbComplaint(await normalizeComplaintTiming(complaint as DbComplaintRow)), error: null };
     } catch (error) {
       return { 
         complaint: null, 
@@ -519,7 +573,7 @@ export const realComplaintService = {
       }
 
       return {
-        complaints: (complaints || []).map((row) => mapDbComplaint(row as DbComplaintRow)),
+        complaints: await Promise.all((complaints || []).map(async (row) => mapDbComplaint(await normalizeComplaintTiming(row as DbComplaintRow)))),
         error: null,
       };
     } catch (error) {

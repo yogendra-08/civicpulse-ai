@@ -19,7 +19,7 @@ import { LoadingOverlay, EmptyState } from '@/components/ui';
 import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint, ComplaintStatus } from '@/types';
 
-const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Submitted', 'Assigned', 'In Progress', 'Resolved'];
+const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Submitted', 'Assigned', 'In Progress', 'Resolved', 'Overdue'];
 
 const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
   All: 'filters.all',
@@ -27,6 +27,8 @@ const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
   Assigned: 'complaints.status.assigned',
   'In Progress': 'complaints.status.inProgress',
   Resolved: 'complaints.status.resolved',
+  Closed: 'complaints.status.closed',
+  Overdue: 'complaints.status.overdue',
 };
 
 export function CitizenDashboard() {
@@ -56,6 +58,7 @@ export function CitizenDashboard() {
       inProgress: complaints.filter((c) => c.status === 'In Progress').length,
       resolved: complaints.filter((c) => c.status === 'Resolved').length,
       submitted: complaints.filter((c) => c.status === 'Submitted').length,
+      overdue: complaints.filter((c) => c.status === 'Overdue').length,
     };
   }, [complaints]);
 
@@ -96,6 +99,7 @@ export function CitizenDashboard() {
         <StatCard icon={Clock} label={t('dashboard.stats.assigned')} value={stats.assigned} color="bg-blue-50 text-blue-600" />
         <StatCard icon={Clock} label={t('dashboard.stats.inProgress')} value={stats.inProgress} color="bg-saffron-50 text-saffron-600" />
         <StatCard icon={CheckCircle2} label={t('dashboard.stats.resolved')} value={stats.resolved} color="bg-emerald-50 text-emerald-600" />
+        <StatCard icon={Clock} label={t('complaints.status.overdue')} value={stats.overdue} color="bg-red-50 text-red-600" />
       </div>
 
       {/* Profile + Quick action */}

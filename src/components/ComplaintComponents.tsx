@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Calendar,
@@ -17,10 +17,13 @@ import {
   Cpu,
   CheckCircle2,
   AlertTriangle,
+  ThumbsUp,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import type { Complaint, ComplaintCategory } from '@/types';
 import { departments, officers } from '@/data/mockData';
 import { SeverityBadge, StatusBadge } from '@/components/ui';
+import { complaintVoteService } from '@/services/complaintVoteService';
 
 const categoryKeys: Record<ComplaintCategory, string> = {
   'Road Issue': 'complaints.categoryLabels.roadIssue',
@@ -73,6 +76,12 @@ function formatDateTime(iso: string, language: string) {
   });
 }
 
+function isOverdue(complaint: Complaint) {
+  if (complaint.status === 'Resolved' || complaint.status === 'Closed') return false;
+  if (!complaint.expectedResolutionAt) return false;
+  return new Date(complaint.expectedResolutionAt).getTime() < Date.now();
+}
+
 export function ComplaintCard({
   complaint,
   onOpen,
@@ -81,11 +90,36 @@ export function ComplaintCard({
   onOpen: (c: Complaint) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const [voteSummary, setVoteSummary] = useState(() => complaintVoteService.getSummary(complaint.id));
+  const [hasVoted, setHasVoted] = useState(() => complaintVoteService.hasUpvoted(complaint.id, user?.id));
   const Icon = iconMap[complaint.category];
+  const overdue = isOverdue(complaint);
+  const displayStatus = overdue ? 'Overdue' : complaint.status;
+
+  useEffect(() => {
+    const summary = complaintVoteService.getSummary(complaint.id);
+    setVoteSummary(summary);
+    setHasVoted(complaintVoteService.hasUpvoted(complaint.id, user?.id));
+  }, [complaint?.id, user?.id]);
+
+  function handleVote(e: MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    if (!user || user.role !== 'citizen') return;
+    const summary = complaintVoteService.toggleUpvote(complaint.id, user.id);
+    setVoteSummary(summary);
+    setHasVoted(summary.voters.includes(user.id));
+  }
+
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(complaint)}
-      className="card text-left p-4 sm:p-5 w-full hover:shadow-card-hover hover:border-slate-300 transition-all duration-200 group animate-fade-in"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onOpen(complaint);
+      }}
+      className="card text-left p-4 sm:p-5 w-full hover:shadow-card-hover hover:border-slate-300 transition-all duration-200 group animate-fade-in cursor-pointer"
     >
       <div className="flex items-start gap-3">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${categoryBg[complaint.category]}`}>
@@ -110,15 +144,28 @@ export function ComplaintCard({
             </span>
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
-            <StatusBadge status={complaint.status} />
-            <span className="text-xs text-slate-400 truncate">
-              {complaint.departmentName ?? deptName(complaint.departmentId, complaint.departmentName, t('admin.unknown'))}
-            </span>
+            <StatusBadge status={displayStatus} />
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="truncate">
+                {complaint.departmentName ?? deptName(complaint.departmentId, complaint.departmentName, t('admin.unknown'))}
+              </span>
+              <button
+                type="button"
+                onClick={handleVote}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${
+                  hasVoted ? 'bg-gov-50 text-gov-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                aria-label={hasVoted ? t('complaints.voteRemove') : t('complaints.voteAdd')}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+                <span className="font-semibold">{voteSummary.upvotes}</span>
+              </button>
+            </div>
           </div>
         </div>
         <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-navy-400 group-hover:translate-x-0.5 transition-all shrink-0" />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -132,11 +179,31 @@ export function ComplaintDetailModal({
   children?: React.ReactNode;
 }) {
   const { t: translate, i18n } = useTranslation();
+  const { user } = useAuth();
   const [imgError, setImgError] = useState(false);
+  const [voteSummary, setVoteSummary] = useState(() => complaint ? complaintVoteService.getSummary(complaint.id) : { upvotes: 0, voters: [] });
+  const [hasVoted, setHasVoted] = useState(() => complaint ? complaintVoteService.hasUpvoted(complaint.id, user?.id) : false);
+  const complaintId = complaint?.id;
+
+  useEffect(() => {
+    if (!complaintId) return;
+    const summary = complaintVoteService.getSummary(complaintId);
+    setVoteSummary(summary);
+    setHasVoted(complaintVoteService.hasUpvoted(complaintId, user?.id));
+  }, [complaintId, user?.id]);
+
   if (!complaint) return null;
   const Icon = iconMap[complaint.category];
   const aiInfo = complaint.ai ?? null;
   const timeline = complaint.timeline ?? [];
+
+  function handleVote() {
+    if (!complaintId) return;
+    if (!user || user.role !== 'citizen') return;
+    const summary = complaintVoteService.toggleUpvote(complaintId, user.id);
+    setVoteSummary(summary);
+    setHasVoted(summary.voters.includes(user.id));
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -150,11 +217,24 @@ export function ComplaintDetailModal({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
-                <SeverityBadge severity={complaint.severity} />
-                <StatusBadge status={complaint.status} />
+              <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
+              <SeverityBadge severity={complaint.severity} />
+                <StatusBadge status={displayStatus} />
               </div>
               <h2 className="mt-1 text-lg font-bold text-navy-900 leading-snug">{complaint.title}</h2>
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={handleVote}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                    hasVoted ? 'bg-gov-50 text-gov-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  aria-label={hasVoted ? translate('complaints.voteRemove') : translate('complaints.voteAdd')}
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  <span>{translate('complaints.voteCount', { count: voteSummary.upvotes })}</span>
+                </button>
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-navy-700 transition shrink-0">
@@ -182,6 +262,16 @@ export function ComplaintDetailModal({
             <MetaItem icon={Building} label={translate('complaints.details.department')} value={deptName(complaint.departmentId, complaint.departmentName, translate('admin.unknown'))} />
             <MetaItem icon={User} label={translate('complaints.details.assignedTo')} value={officerName(complaint.officerId, complaint.officerName, translate('officer.noAssignments'))} />
             <MetaItem icon={Calendar} label={translate('complaints.details.filedOn')} value={formatDate(complaint.createdAt, i18n.language)} />
+            <MetaItem
+              icon={Clock}
+              label={translate('complaints.details.expectedBy')}
+              value={complaint.expectedResolutionAt ? formatDate(complaint.expectedResolutionAt, i18n.language) : translate('complaints.details.pendingEstimate')}
+            />
+            <MetaItem
+              icon={AlertTriangle}
+              label={translate('complaints.details.estimateWindow')}
+              value={complaint.resolutionWindow || translate('complaints.details.pendingEstimate')}
+            />
           </div>
 
           {/* Description */}
@@ -261,7 +351,7 @@ function MetaItem({
 }: {
   icon?: typeof MapPin;
   label: string;
-  value: React.ReactNode;
+  value: ReactNode;
   compact?: boolean;
 }) {
   return (

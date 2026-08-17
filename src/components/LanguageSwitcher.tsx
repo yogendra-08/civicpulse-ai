@@ -60,9 +60,7 @@ export function LanguageSwitcher() {
             >
               <span className="flex items-center justify-between">
                 <span>{lang.name}</span>
-                {i18n.language === lang.code && (
-                  <span className="h-2 w-2 rounded-full bg-gov-600" />
-                )}
+                {i18n.language === lang.code && <span className="h-2 w-2 rounded-full bg-gov-600" />}
               </span>
             </button>
           ))}

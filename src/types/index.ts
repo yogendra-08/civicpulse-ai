@@ -1,6 +1,6 @@
 export type Role = 'citizen' | 'officer' | 'admin';
 
-export type ComplaintStatus = 'Submitted' | 'Assigned' | 'In Progress' | 'Resolved' | 'Closed';
+export type ComplaintStatus = 'Submitted' | 'Assigned' | 'In Progress' | 'Resolved' | 'Closed' | 'Overdue';
 export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
 
 export type ComplaintCategory =
@@ -59,12 +59,16 @@ export interface Complaint {
   createdAt: string;
   updatedAt?: string;
   resolvedAt?: string;
+  expectedResolutionAt?: string;
+  resolutionWindow?: string;
   citizenId?: string;
   citizenName?: string;
   departmentName?: string;
   officerName?: string;
   ai?: AIAnalysis;
   timeline?: StatusUpdate[];
+  upvotes?: number;
+  upvotedByCitizen?: boolean;
 }
 
 export interface CitizenUser {

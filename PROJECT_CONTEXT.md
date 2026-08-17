@@ -8,6 +8,8 @@ CivicPulse AI is a Vite + React + TypeScript civic grievance platform backed by 
 - Officer: views assigned complaints, advances status, adds notes.
 - Admin: views all complaints, analytics, and user-management screens.
 
+The app now also includes a global floating chat assistant on every page. It uses Gemini when configured and falls back to reserved civic-portal answers when Gemini is unavailable.
+
 ## Stack
 
 - React 18, TypeScript, Vite
@@ -24,6 +26,11 @@ Useful scripts:
 - `npm run lint`
 - `npm run typecheck`
 
+Recent verification:
+
+- `npm run build` passes
+- `npm run typecheck` passes
+
 ## Important Files
 
 - `src/App.tsx`: route tree and role-gated pages.
@@ -34,6 +41,7 @@ Useful scripts:
 - `src/types/index.ts`: core domain types.
 - `src/components/DashboardLayout.tsx`: shared role dashboards shell.
 - `src/components/ComplaintComponents.tsx`: complaint cards and details modal.
+- `src/components/ChatAgent.tsx`: floating Gemini-powered assistant with local fallback answers.
 - `supabase/migrations/20250816000000_initial_schema.sql`: database schema, RLS policies, RPCs, triggers, seed departments/settings.
 
 ## Frontend Routes
@@ -48,6 +56,8 @@ Useful scripts:
 - `/admin`: admin dashboard
 - `/admin/analytics`: admin analytics
 - `/admin/users`: user management
+
+The chat assistant is mounted from `src/App.tsx`, so it appears on all routes.
 
 Role access is enforced by `RequireRole`, which redirects unauthenticated users to `/login` and users with the wrong role to their role dashboard.
 
@@ -73,6 +83,8 @@ Key enums include user roles, complaint statuses, severity levels, categories, n
 - `aiService` is deterministic keyword logic with a simulated delay, not an external AI API.
 - Complaint creation does a client-side AI analysis, inserts into Supabase, optionally auto-assigns through RPC, creates timeline, and notifies officers.
 - Admin analytics combines direct complaint queries with Supabase RPC statistics.
+- The chat assistant reads `VITE_GEMINI_API_KEY` and optional `VITE_GEMINI_MODEL` from environment variables.
+- Reserved fallback answers cover login, complaint filing, dashboards, profile, support, and common troubleshooting questions.
 
 ## Known Risks / Follow-Up Areas
 

@@ -296,6 +296,9 @@
       "statusTimeline": "Status Timeline",
       "by": "by {{name}}"
     },
+    "voteAdd": "Upvote this complaint",
+    "voteRemove": "Remove upvote",
+    "voteCount": "{{count}} upvotes",
     "filters": {
       "all": "All",
       "pending": "Pending",

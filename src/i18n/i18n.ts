@@ -11,10 +11,9 @@ const resources = {
 };
 
 const supportedLanguages = ['en', 'hi', 'mr'];
-const savedLanguage =
-  typeof window !== 'undefined' && supportedLanguages.includes(localStorage.getItem('language') || '')
-    ? localStorage.getItem('language')
-    : 'en';
+const storedLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') : null;
+const savedLanguage: string | undefined =
+  storedLanguage && supportedLanguages.includes(storedLanguage) ? storedLanguage : 'en';
 
 i18next
   .use(initReactI18next)
@@ -31,7 +30,7 @@ function applyDocumentLanguage(language: string) {
   document.documentElement.lang = language;
 }
 
-i18next.on('languageChanged', (language) => {
+i18next.on('languageChanged', (language: string) => {
   if (supportedLanguages.includes(language)) {
     localStorage.setItem('language', language);
     applyDocumentLanguage(language);

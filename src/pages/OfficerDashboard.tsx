@@ -17,7 +17,7 @@ import { LoadingOverlay, EmptyState, StatusBadge } from '@/components/ui';
 import { realComplaintService } from '@/services/realComplaintService';
 import type { Complaint, ComplaintStatus } from '@/types';
 
-const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved'];
+const statusFilters: (ComplaintStatus | 'All')[] = ['All', 'Assigned', 'In Progress', 'Resolved', 'Overdue'];
 
 const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
   All: 'filters.all',
@@ -26,6 +26,7 @@ const statusFilterKeys: Record<ComplaintStatus | 'All', string> = {
   'In Progress': 'complaints.status.inProgress',
   Resolved: 'complaints.status.resolved',
   Closed: 'complaints.status.closed',
+  Overdue: 'complaints.status.overdue',
 };
 
 const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
@@ -33,6 +34,7 @@ const nextStatus: Partial<Record<ComplaintStatus, ComplaintStatus | null>> = {
   Assigned: 'In Progress',
   'In Progress': 'Resolved',
   Resolved: 'Closed',
+  Overdue: null,
   Closed: null,
 };
 

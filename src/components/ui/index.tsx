@@ -7,6 +7,7 @@ const statusKeys: Record<string, string> = {
   'In Progress': 'complaints.status.inProgress',
   Resolved: 'complaints.status.resolved',
   Closed: 'complaints.status.closed',
+  Overdue: 'complaints.status.overdue',
 };
 
 const severityKeys: Record<string, string> = {
@@ -26,6 +27,7 @@ export function StatusBadge({ status }: { status: string }) {
     Assigned: 'bg-blue-100 text-blue-700',
     'In Progress': 'bg-saffron-100 text-saffron-700',
     Resolved: 'bg-emerald-100 text-emerald-700',
+    Overdue: 'bg-red-100 text-red-700',
   };
   return <span className={`badge ${map[status] ?? 'bg-slate-100 text-slate-700'}`}>{t(statusKeys[status] ?? status)}</span>;
 }

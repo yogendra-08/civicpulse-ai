@@ -87,6 +87,35 @@ const fromDbSeverity = (severity: string): Severity => {
   return map[severity] ?? 'Medium';
 };
 
+const aiDepartmentIdToDbName: Record<string, string> = {
+  'dept-roads': 'Roads & Infrastructure',
+  'dept-water': 'Water Works',
+  'dept-sanitation': 'Sanitation & Solid Waste',
+  'dept-electrical': 'Electrical & Street Lighting',
+  'dept-drainage': 'Drainage & Sewerage',
+};
+
+const complaintCategoryToDepartmentName: Record<ComplaintCategory, string> = {
+  'Road Issue': 'Roads & Infrastructure',
+  'Water Leakage': 'Water Works',
+  Sanitation: 'Sanitation & Solid Waste',
+  Electrical: 'Electrical & Street Lighting',
+  Drainage: 'Drainage & Sewerage',
+  'Public Sanitation': 'Sanitation & Solid Waste',
+};
+
+const resolveDepartmentNameForComplaint = (aiDepartmentId?: string, category?: ComplaintCategory): string => {
+  if (aiDepartmentId && aiDepartmentIdToDbName[aiDepartmentId]) {
+    return aiDepartmentIdToDbName[aiDepartmentId];
+  }
+
+  if (category && complaintCategoryToDepartmentName[category]) {
+    return complaintCategoryToDepartmentName[category];
+  }
+
+  return 'Sanitation & Solid Waste';
+};
+
 type DbComplaintRow = {
   id: string;
   complaint_number?: string;
@@ -169,14 +198,14 @@ export const realComplaintService = {
       const dbCategory = toDbCategory(aiAnalysis.category) || 'sanitation';
       const dbSeverity = toDbSeverity(aiAnalysis.severity) || 'medium';
 
-      // Get department ID from category
+      // Get department ID from AI classification or complaint category.
+      // The AI layer returns mock department ids like "dept-roads", which do not match
+      // the real department rows in Supabase. We must resolve to the actual database name.
+      const departmentName = resolveDepartmentNameForComplaint(aiAnalysis.departmentId, aiAnalysis.category);
       const { data: department } = await supabase
         .from('departments')
-        .select('id')
-        .eq('name', aiAnalysis.departmentId ? 
-          ['Roads & Infrastructure', 'Water Works', 'Sanitation & Solid Waste', 'Electrical & Street Lighting', 'Drainage & Sewerage']
-            .find(dept => dept.toLowerCase().includes(aiAnalysis.departmentId?.toLowerCase() || '')) || 'Sanitation & Solid Waste'
-          : 'Sanitation & Solid Waste')
+        .select('id, name')
+        .eq('name', departmentName)
         .single();
 
       // Create complaint (retry on complaint_number unique constraint conflicts)

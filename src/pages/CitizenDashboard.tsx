@@ -51,7 +51,7 @@ export function CitizenDashboard() {
   }, [user]);
 
   const stats = useMemo(() => {
-    if (!complaints) return { total: 0, assigned: 0, inProgress: 0, resolved: 0 };
+    if (!complaints) return { total: 0, assigned: 0, inProgress: 0, resolved: 0, submitted: 0, overdue: 0 };
     return {
       total: complaints.length,
       assigned: complaints.filter((c) => c.status === 'Assigned').length,

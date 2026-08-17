@@ -194,6 +194,8 @@ export function ComplaintDetailModal({
 
   if (!complaint) return null;
   const Icon = iconMap[complaint.category];
+  const overdue = isOverdue(complaint);
+  const displayStatus = overdue ? 'Overdue' : complaint.status;
   const aiInfo = complaint.ai ?? null;
   const timeline = complaint.timeline ?? [];
 
@@ -217,8 +219,8 @@ export function ComplaintDetailModal({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
-              <SeverityBadge severity={complaint.severity} />
+                <span className="text-xs font-bold text-gov-600 font-mono">{complaint.complaint_number ?? complaint.id}</span>
+                <SeverityBadge severity={complaint.severity} />
                 <StatusBadge status={displayStatus} />
               </div>
               <h2 className="mt-1 text-lg font-bold text-navy-900 leading-snug">{complaint.title}</h2>

@@ -24,6 +24,8 @@ type ResolutionPlan = {
   maxDays: number;
 };
 
+type InsertErrorLike = { message: string; code?: string };
+
 const categoryResolutionPlans: Record<ComplaintCategory, ResolutionPlan> = {
   'Road Issue': { windowLabel: '3-5 days', minDays: 3, maxDays: 5 },
   'Water Leakage': { windowLabel: '2-3 days', minDays: 2, maxDays: 3 },
@@ -275,8 +277,8 @@ export const realComplaintService = {
         .single();
 
       // Create complaint (retry on complaint_number unique constraint conflicts)
-      let complaint: any = null;
-      let insertError: any = null;
+      let complaint: DbComplaintRow | null = null;
+      let insertError: InsertErrorLike | null = null;
       const maxAttempts = 4;
       const fullPayload = {
         complaint_number: generateComplaintNumber(),
@@ -326,7 +328,7 @@ export const realComplaintService = {
           .select()
           .single();
 
-        complaint = res.data as any;
+        complaint = res.data as DbComplaintRow | null;
         insertError = res.error;
 
         if (!insertError) break;
@@ -339,12 +341,12 @@ export const realComplaintService = {
             .insert(fallbackWithNumber)
             .select()
             .single();
-          complaint = fallback.data as any;
+          complaint = fallback.data as DbComplaintRow | null;
           insertError = fallback.error;
           if (!insertError) break;
         }
         // Postgres unique violation code 23505, or specific complaint_number key
-        if (msg.includes('complaints_complaint_number_key') || insertError.code === '23505') {
+        if (msg.includes('complaints_complaint_number_key') || insertError?.code === '23505') {
           if (attempt < maxAttempts) {
             // small backoff before retrying
             await new Promise((r) => setTimeout(r, 150 * attempt));
@@ -358,6 +360,10 @@ export const realComplaintService = {
 
       if (insertError) {
         return { complaint: null, error: insertError.message };
+      }
+
+      if (!complaint) {
+        return { complaint: null, error: 'Failed to create complaint' };
       }
 
       // Auto-assign if enabled
@@ -393,7 +399,7 @@ export const realComplaintService = {
         performed_by_role: 'citizen',
       });
 
-      return { complaint: mapDbComplaint(complaint as DbComplaintRow), error: null };
+      return { complaint: mapDbComplaint(complaint), error: null };
     } catch (error) {
       return { 
         complaint: null, 

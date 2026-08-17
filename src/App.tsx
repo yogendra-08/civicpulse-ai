@@ -11,11 +11,13 @@ import { ReportComplaintPage } from '@/pages/ReportComplaintPage';
 import { OfficerDashboard } from '@/pages/OfficerDashboard';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { AdminAnalytics } from '@/pages/AdminAnalytics';
+import { ChatAgent } from '@/components/ChatAgent';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ChatAgent />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />

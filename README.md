@@ -64,6 +64,8 @@ Create a `.env` file in the root directory with the following variables:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_GEMINI_MODEL=gemini-1.5-flash
 ```
 
 4. Start the development server:
